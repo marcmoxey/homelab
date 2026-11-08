@@ -57,8 +57,8 @@ Planned: the Alertmanager container was stopped on purpose.
 
 ## Action items
 - [ ] Lower the healthchecks.io period/grace to 2 min / 3 min
-- [ ] Add a second independent notification channel to healthchecks.io
-- [ ] Always run `promtool check config` (not just `check rules`) before restarting Prometheus
+- [ x ] Add a second independent notification channel to healthchecks.io
+- [ x ] Always run `promtool check config` (not just `check rules`) before restarting Prometheus
 - [ ] Pin the Alertmanager image to an exact version (currently `latest`)
 - [ ] Write runbook: `docs/runbooks/watchdog-down.md`
 
