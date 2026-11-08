@@ -8,6 +8,7 @@ groups:
           severity: critical
         annotations:
           summary: "{{ $labels.job }} on {{ $labels.instance }} is down"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/target-down.md"
 
 
       - alert: Watchdog
@@ -16,3 +17,4 @@ groups:
           severity: none
         annotations:
           summary: "Dead man's switch: always firing while alerting works"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/watchdog-down.md"
