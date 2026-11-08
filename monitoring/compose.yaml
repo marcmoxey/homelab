@@ -1,0 +1,17 @@
+services: # start list of containers to run
+  prometheus: # service name 
+    image: prom/prometheus:v3.13.5 # pulls the latest image
+    container_name: prometheus # fixed container name
+    ports: # publish port 
+      - "100.66.160.124:9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro # mounts config file to container
+      - prometheus_data:/prometheus # mounts the name volume
+    command: # override the image default startup arguments 
+      - '--config.file=/etc/prometheus/prometheus.yml' # where to find file mounted above
+      - '--storage.tsdb.path=/prometheus' # where to store the metrics 
+      - '--storage.tsdb.retention.time=30d' # keep metrics for 30 days 
+    restart: unless-stopped # docker restarts the container if it crashes 
+
+volumes:
+  prometheus_data:

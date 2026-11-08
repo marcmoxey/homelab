@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s # scrape targets every 15 seconds
+
+  # Labels attached to all metrics and alerts sent to external systems
+  external_labels:
+    monitor: 'homelab'
+
+scrape_configs:
+  # job_name becomes the label job="prometheus" on every metric from this job
+  - job_name: 'prometheus'
+
+    # Scrape this job every 5 seconds instead of the global 15s
+    scrape_interval: 5s
+
+    static_configs:
+      - targets: ['localhost:9090'] # Prometheus scraping itself, inside its own container
