@@ -13,5 +13,19 @@ services: # start list of containers to run
       - '--storage.tsdb.retention.time=30d' # keep metrics for 30 days 
     restart: unless-stopped # docker restarts the container if it crashes 
 
+  node-exporter: # host metrics for the beelink 
+    image: quay.io/prometheus/node-exporter:v1.12.1
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host' # read the host metrics from the mounted root
+      - '--web.listen-address=100.66.160.124:9100' # only listen on tailscale
+    network_mode: host # use the beelink network directly
+    pid: host # see the host processes 
+    volumes:
+      - '/:/host:ro,rslave' # host filesystem, read-only 
+    restart: unless-stopped
+
 volumes:
   prometheus_data:
+
+
