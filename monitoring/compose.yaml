@@ -24,8 +24,26 @@ services: # start list of containers to run
     volumes:
       - '/:/host:ro,rslave' # host filesystem, read-only 
     restart: unless-stopped
+  
+  grafana: # dashbaords 
+    image: grafana/grafana-oss:13.0.2
+    container_name: grafana
+    ports:
+      - "100.66.160.124:3000:3000" # Tailscale
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana # dashboard, users, settings
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro # data sources as code
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 
 volumes:
   prometheus_data:
+  grafana_data:
 
 
