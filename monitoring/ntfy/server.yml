@@ -1,0 +1,13 @@
+# The URL phone use to reach ntfy
+base-url: "http://100.66.160.124:8080"
+
+# Keep message on disk so the phone can catch up after being online 
+cache-file: "/var/cache/ntfy/cache.db"
+cache-duration: "12h"
+
+# Require login
+auth-file: "/var/lib/ntfy/user.db:"
+auth-default-access: "deny-all"
+
+# iPhone only: lets Apple deeliver notifications instantly
+upstream-base-url: "https://ntfy.sh"

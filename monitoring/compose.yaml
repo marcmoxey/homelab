@@ -24,7 +24,7 @@ services: # start list of containers to run
     volumes:
       - '/:/host:ro,rslave' # host filesystem, read-only 
     restart: unless-stopped
-  
+
   grafana: # dashbaords 
     image: grafana/grafana-oss:13.0.2
     container_name: grafana
@@ -41,9 +41,24 @@ services: # start list of containers to run
       - prometheus
     restart: unless-stopped
 
+  ntfy:
+    image: binwiederhier/ntfy:v2.37.2
+    container_name: ntfy
+    command:
+      - serve
+    environment:
+      - TZ=America/New_York
+    ports:
+      - "100.66.160.124:8080:80"
+    volumes:
+      - ./ntfy/server.yml:/etc/ntfy/server.yml:ro # config, read-only
+      - ntfy_cache:/var/cache/ntfy # message cache 
+      - ntfy_data:/var/lib/ntfy # users/auth database
+    restart: unless-stopped
 
 volumes:
   prometheus_data:
   grafana_data:
-
+  ntfy_cache:
+  ntfy_data:
 
