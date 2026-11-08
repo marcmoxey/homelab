@@ -65,6 +65,7 @@ services: # start list of containers to run
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro # config, read-only
       - alertmanager_data:/alertmanager # silences and notification state
+      - ./alertmanager/secrets:/etc/alertmanager/secrets:ro # Healthcheck pings url
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'

@@ -1,5 +1,6 @@
 global:
   scrape_interval: 15s # scrape targets every 15 seconds
+  evaluation_interval: 15s
 
   # Labels attached to all metrics and alerts sent to external systems
   external_labels:

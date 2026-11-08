@@ -8,3 +8,11 @@ groups:
           severity: critical
         annotations:
           summary: "{{ $labels.job }} on {{ $labels.instance }} is down"
+
+
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+        annotations:
+          summary: "Dead man's switch: always firing while alerting works"

@@ -3,9 +3,19 @@ route:
   group_by: ['alertname']       # bundle alerts with the same name
   group_wait: 30s               # wait 30s to batch related alerts
   repeat_interval: 4h           # re-notify every 4h if still firing
+  routes:
+    - matchers: ['alertname="Watchdog"']   # only the dead man's switch alert
+      receiver: deadman-switch
+      group_wait: 0s            # ping right away
+      group_interval: 1m        # allow re-sends every minute
+      repeat_interval: 1m       # ping healthchecks.io every ~1 minute
 
 receivers:
   - name: ntfy
     webhook_configs:
       - url: http://ntfy-alertmanager:8080  # bridge's service name on the Compose network
         send_resolved: true                  # also notify when fixed
+  - name: deadman-switch
+    webhook_configs:
+      - url_file: /etc/alertmanager/secrets/healthchecks_url  # ping URL, kept out of Git
+        send_resolved: false                                   # only "I'm alive" pings matter
