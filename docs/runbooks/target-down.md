@@ -22,6 +22,7 @@
 
 1. Open **Prometheus → Status → Target health**: `http://100.66.160.124:9090/targets`
 2. Note which **job / instance** is DOWN and the **error** text.
+3. Can't openANY of UIs (9090, 3000, 9093)? check Tailscale on your own device first.
 
 | Error text | Usually means |
 |---|---|
