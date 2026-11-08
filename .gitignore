@@ -5,3 +5,6 @@ secrets/
 *.key
 *.pem
 data/
+monitoring/ntfy-alertmanager/config
+monitoring/ntfy-alertmanager/config
+monitoring/alertmanager/secrets/
