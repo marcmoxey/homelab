@@ -24,8 +24,8 @@ outage began.
 | 3:52 PM   | Watchdog alert starts firing; pings begin reaching healthchecks.io |
 | ~3:54 PM  | Alertmanager stopped (`docker compose stop alertmanager`); pings stop |
 | 4:04 PM   | healthchecks.io emails "beelink-watchdog is DOWN" (5 min period + 5 min grace) |
-| [ ] PM    | Alertmanager restarted (`docker compose start alertmanager`) |
-| [ ] PM    | healthchecks.io emails "beelink-watchdog is UP" |
+| 4:05 PM    | Alertmanager restarted (`docker compose start alertmanager`) |
+| 4:07 PM    | healthchecks.io emails "beelink-watchdog is UP" |
 
 ## Detection
 - Detected by healthchecks.io, which runs outside my homelab, when expected pings stopped.
