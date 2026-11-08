@@ -5,6 +5,17 @@ global:
   external_labels:
     monitor: 'homelab'
 
+# Where Prometheus send the firing alerts
+alerting:
+  alertmanagers:
+    - static_configs:
+       - targets: ['alertmanager:9093']
+
+# Alert rule files
+rule_files:
+    - /etc/prometheus/rules/*.yml
+
+
 scrape_configs:
   # job_name becomes the label job="prometheus" on every metric from this job
   - job_name: 'prometheus'

@@ -7,6 +7,7 @@ services: # start list of containers to run
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro # mounts config file to container
       - prometheus_data:/prometheus # mounts the name volume
+      - ./prometheus/rules:/etc/prometheus/rules:ro # alert rules
     command: # override the image default startup arguments 
       - '--config.file=/etc/prometheus/prometheus.yml' # where to find file mounted above
       - '--storage.tsdb.path=/prometheus' # where to store the metrics 
@@ -56,9 +57,34 @@ services: # start list of containers to run
       - ntfy_data:/var/lib/ntfy # users/auth database
     restart: unless-stopped
 
+  alertmanager: # routes alerts from Prometheus to ntfy bridge
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    ports:
+      - "100.66.160.124:9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro # config, read-only
+      - alertmanager_data:/alertmanager # silences and notification state
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    restart: unless-stopped
+
+  ntfy-alertmanager: # converts alertmanager webhooks into ntfy notifications
+    image: xenrox/ntfy-alertmanager:1.0.2
+    container_name: ntfy-alertmanager
+    volumes:
+      - ./ntfy-alertmanager/config:/etc/ntfy-alertmanager/config:ro
+    depends_on:
+      - ntfy
+    restart: unless-stopped
+
+
+
+
 volumes:
   prometheus_data:
   grafana_data:
   ntfy_cache:
   ntfy_data:
-
+  alertmanager_data:

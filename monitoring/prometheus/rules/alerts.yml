@@ -1,0 +1,10 @@
+groups:
+  - name: homelab
+    rules:
+      - alert: TargetDown           # a scrape target is unreachable
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} on {{ $labels.instance }} is down"

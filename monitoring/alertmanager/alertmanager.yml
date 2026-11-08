@@ -1,0 +1,11 @@
+route:
+  receiver: ntfy                # send everything to the ntfy bridge
+  group_by: ['alertname']       # bundle alerts with the same name
+  group_wait: 30s               # wait 30s to batch related alerts
+  repeat_interval: 4h           # re-notify every 4h if still firing
+
+receivers:
+  - name: ntfy
+    webhook_configs:
+      - url: http://ntfy-alertmanager:8080  # bridge's service name on the Compose network
+        send_resolved: true                  # also notify when fixed
