@@ -32,7 +32,7 @@ Use this every time you edit anything in `/opt/stacks/monitoring`. Every rule be
 | node-exporter | 9100 (host network) | `quay.io/prometheus/node-exporter:v1.12.1` |
 | grafana | 3000 | `grafana/grafana-oss:13.0.2` |
 | ntfy | 8080 → 80 | `binwiederhier/ntfy:v2.37.2` |
-| alertmanager | 9093 | `prom/alertmanager:<pin this>` |
+| alertmanager | 9093 | `prom/alertmanager:latest` |
 | ntfy-alertmanager | none (internal only) | `xenrox/ntfy-alertmanager:1.0.2` |
 
 ---
