@@ -58,7 +58,7 @@ services: # start list of containers to run
     restart: unless-stopped
 
   alertmanager: # routes alerts from Prometheus to ntfy bridge
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:0.34.2
     container_name: alertmanager
     ports:
       - "100.66.160.124:9093:9093"
