@@ -1,6 +1,6 @@
 services: # start list of containers to run
   prometheus: # service name 
-    image: prom/prometheus:v3.13.5 # pulls the latest image
+    image: prom/prometheus:v3.13.5
     container_name: prometheus # fixed container name
     ports: # publish port 
       - "100.66.160.124:9090:9090"
@@ -58,7 +58,7 @@ services: # start list of containers to run
     restart: unless-stopped
 
   alertmanager: # routes alerts from Prometheus to ntfy bridge
-    image: prom/alertmanager:0.34.2
+    image: prom/alertmanager:v0.34.2
     container_name: alertmanager
     ports:
       - "100.66.160.124:9093:9093"
