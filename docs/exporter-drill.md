@@ -46,10 +46,10 @@ Restarted the container. Time to resolve after the alert: <1 minute.
 - There's no runbook for TargetDown yet.
 
 ## Action items
-- [ ] Set `evaluation_interval: 15s` in prometheus.yml
-- [ ] Add a dead man's switch (always-firing Watchdog alert → healthchecks.io)
+- [ x ] Set `evaluation_interval: 15s` in prometheus.yml
+- [ x ] Add a dead man's switch (always-firing Watchdog alert → healthchecks.io)
 - [ ] Write `docs/runbooks/target-down.md`
-- [ ] Run the same drill again after these changes and compare detection time
+- [ x ] Run the same drill again after these changes and compare detection time
 
 ## Lessons learned
 Alert latency is the sum of scrape interval + rule evaluation + `for` duration +
