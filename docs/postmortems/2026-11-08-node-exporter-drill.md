@@ -48,7 +48,7 @@ Restarted the container. Time to resolve after the alert: <1 minute.
 ## Action items
 - [ x ] Set `evaluation_interval: 15s` in prometheus.yml
 - [ x ] Add a dead man's switch (always-firing Watchdog alert → healthchecks.io)
-- [ ] Write `docs/runbooks/target-down.md`
+- [ x ] Write `docs/runbooks/target-down.md`
 - [ x ] Run the same drill again after these changes and compare detection time
 
 ## Lessons learned
