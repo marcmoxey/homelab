@@ -69,6 +69,7 @@ services: # start list of containers to run
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
+      - '--cluster.listen-address=' # single instance: turn off clustering
     restart: unless-stopped
 
   ntfy-alertmanager: # converts alertmanager webhooks into ntfy notifications
