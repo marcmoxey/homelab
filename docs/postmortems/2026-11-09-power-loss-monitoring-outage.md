@@ -30,7 +30,7 @@ The Beelink lost power or crashed hard around 11:29 PM ET. When it booted again,
 | Nov 8, ~11:29 PM | Last journal entry from the previous boot (04:29 UTC). Routine log lines, then nothing. **No shutdown messages**, so this was an unclean power loss or hard crash, not a reboot. |
 | ~11:35 PM | Beelink boots again (worked out from `uptime`: up 10:07 at 14:42 UTC). |
 | ~11:35 PM | `node-exporter` and `ntfy-alertmanager` start. `prometheus`, `grafana`, `ntfy` and `alertmanager` stay in **Exited (255)**. |
-| ~11:45 PM | healthchecks.io stops receiving Watchdog pings; DOWN email expected. *(TODO: confirm when the DOWN email arrived.)* |
+| ~11:45 PM | healthchecks.io stops receiving Watchdog pings and sends DOWN to Discord and email. *(TODO: confirm exact time from the Discord message.)* |
 | Nov 9, 9:41 AM | **Detected** manually: `docker ps` shows 4 containers Exited 10 hours ago. |
 | 9:42 AM | Ran `docker compose up -d`. Prometheus, Grafana and ntfy show "Up", but with **no published ports**. Alertmanager enters a crash loop: `Restarting (1)`. |
 | 9:43 AM | Alertmanager logs: `unable to initialize gossip mesh ... no private IP address found`. (My first guess, corrupted data from the power cut, was wrong. The logs disproved it.) |
@@ -55,8 +55,8 @@ Prometheus, Grafana, ntfy and Alertmanager publish their ports on `100.66.160.12
 **3. Alertmanager clustering was on by default.**
 Clustering lets several Alertmanagers coordinate with each other. With only one instance, it does nothing useful, but on startup it still requires a private IP, and **exits with an error if it can't find one**. Combined with factor 2, this turned "missing network" into a crash loop.
 
-**4. Detection depended on someone reading email.**
-The dead man's switch worked as designed: it covers exactly this case, where Prometheus itself is down. But it notifies by email, and nobody saw an email overnight. The outage was actually found by a person running `docker ps`.
+**4. The DOWN alert arrived overnight, when nobody was watching.**
+The dead man's switch worked as designed: it covers exactly this case, where Prometheus itself is down, and it notified Discord and email. But it fired around midnight, and the outage wasn't acted on until a person ran `docker ps` the next morning.
 
 ## What went well
 - **The dead man's switch design was right.** When Prometheus is down, nothing inside the homelab can alert, and healthchecks.io sits outside it for exactly this reason.
@@ -70,7 +70,7 @@ The dead man's switch worked as designed: it covers exactly this case, where Pro
 - The boot order between Docker and Tailscale was never tested, because the stack had never been rebooted since it was built.
 - `docker compose up -d` was assumed to fully restore a stack. After a crash it didn't.
 - A default feature (clustering) was running without being needed.
-- The only overnight alert path was email.
+- The DOWN alert went to Discord and email, which don't wake anyone up, so a ~10-minute detection turned into ~10 hours of downtime.
 
 ## Action items
 
@@ -81,16 +81,16 @@ The dead man's switch worked as designed: it covers exactly this case, where Pro
 | 3 | Add "after power loss or crash: `docker compose up -d --force-recreate`" to `target-down.md` and `watchdog-down.md` | Mitigate | ⬜ TODO |
 | 4 | Put the Beelink on the CyberPower UPS with the NAS | Prevent | ⬜ TODO |
 | 5 | Set up NUT (Network UPS Tools) for clean shutdown on long outages, with a power-loss alert to ntfy | Prevent / Detect | ⬜ Later |
-| 6 | Add a healthchecks.io notification that reaches the phone (push/SMS or a public ntfy.sh topic), not only email | Detect | ⬜ TODO |
+| 6 | Decide whether a monitoring-host outage should wake me up. If yes, allow Discord notifications from the alert channel during Do Not Disturb, or add a louder healthchecks.io integration | Detect | ⬜ Decide |
 | 7 | Add reboot testing to the change process: after host-level changes, `sudo reboot` and check `docker compose ps` | Prevent | ⬜ TODO (add to `monitoring-changes.md`) |
-| 8 | Confirm when the healthchecks.io DOWN email arrived and fill in the timeline | Follow-up | ⬜ TODO |
+| 8 | Confirm when the healthchecks.io DOWN message hit Discord and fill in the timeline | Follow-up | ⬜ TODO |
 
 ## Lessons learned
 1. **A system that has never been rebooted hasn't been tested.** Boot-order bugs only show up on restart.
 2. **"Up" isn't the same as "working."** Check the published ports and a real request, not just the status column.
 3. **After a crash, recreate, don't just restart.** `docker compose up -d --force-recreate`.
 4. **Turn off defaults you don't use.** Clustering did nothing for a single instance, and it took down alerting.
-5. **The dead man's switch is only as good as its notification channel.** If it only reaches you by email, an overnight outage goes unnoticed until morning.
+5. **Detection isn't the same as response.** The dead man's switch fired on time, but an alert nobody sees until morning still means hours of downtime.
 
 ## Related
 - Runbooks: `docs/runbooks/target-down.md`, `docs/runbooks/watchdog-down.md`, `docs/runbooks/monitoring-changes.md`

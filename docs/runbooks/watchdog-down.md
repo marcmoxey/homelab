@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Alert** | healthchecks.io email: **"beelink-watchdog is DOWN"** |
+| **Alert** | healthchecks.io: **"beelink-watchdog is DOWN"** (Discord + email) |
 | **Fires when** | healthchecks.io gets no ping for 5 min (period) + 5 min (grace) |
 | **Meaning** | Something in the alerting chain is broken: Beelink → Prometheus → `Watchdog` rule → Alertmanager → internet → healthchecks.io |
 | **Impact** | **No alerts can reach the phone.** Assume other problems may be going unnoticed. |
-| **Notified via** | Email from healthchecks.io (outside the homelab) |
+| **Notified via** | healthchecks.io → **Discord** and email (both outside the homelab, so they work when everything on the Beelink is down) |
 | **Expected detection time** | ~10 min after alerting breaks |
 
 ## How the chain works
@@ -26,7 +26,7 @@ ssh beelink                            # over Tailscale
 ssh mmoxey@<beelink-LAN-IP>            # fallback from home if Tailscale is down
 ```
 
-- **Neither works** → Beelink is off, frozen, or off the network. Check power and cable, check the Archer's connected devices, power-cycle if needed. Once it's back, go to **step 4**.
+- **Neither works** → Beelink is off, frozen, or off the network. Check power and cable, check the Archer's connected devices, power-cycle if needed. Once it's back, run `docker compose ps` — if anything is down or missing ports, go to **step 3** (power loss row).
 - **Works** → continue.
 
 ## 2. Diagnose the chain (on the Beelink)
@@ -60,6 +60,8 @@ Then follow the chain in order — stop at the first broken link:
 | e — It's a directory, not a file | Docker created it because the file was missing at start: `docker compose down`, `sudo rm -r alertmanager/secrets/healthchecks_url`, recreate the file, `docker compose up -d` |
 | f — Mount missing | Add the volume line to the `alertmanager` service, `docker compose up -d` (should say **Recreated**) |
 | g — No internet | Check the Archer / ISP; nothing to fix on the Beelink |
+| Host lost power / crashed / rebooted, several containers down or **Up with no ports** | `cd /opt/stacks/monitoring && docker compose up -d --force-recreate`. Then check `sysctl net.ipv4.ip_nonlocal_bind` = 1 so it doesn't happen on the next boot. |
+| Alertmanager crash-loops with `gossip mesh ... no private IP` | Clustering should be off: `--cluster.listen-address=` in its `command:`. Then `docker compose up -d --force-recreate alertmanager` |
 | Docker itself down | `sudo systemctl status docker` → `sudo systemctl restart docker` → `cd /opt/stacks/monitoring && docker compose up -d` |
 
 ### Validate before restarting (always)
@@ -68,12 +70,12 @@ cd /opt/stacks/monitoring
 docker run --rm -v "$PWD/prometheus:/etc/prometheus" --entrypoint promtool \
   prom/prometheus:v3.13.5 check config /etc/prometheus/prometheus.yml
 docker run --rm -v "$PWD/alertmanager:/etc/alertmanager" --entrypoint amtool \
-  prom/alertmanager:<pinned-version> check-config /etc/alertmanager/alertmanager.yml
+  prom/alertmanager:v0.34.2 check-config /etc/alertmanager/alertmanager.yml
 ```
 
 ## 4. Verify
 
-- [ ] healthchecks.io emails **"beelink-watchdog is UP"**
+- [ ] healthchecks.io posts **"beelink-watchdog is UP"** in Discord / email
 - [ ] healthchecks.io **Total Pings** climbs about once per minute
 - [ ] `docker compose ps` — all 6 containers **Up**
 - [ ] **Alerting was blind during the outage** — check Prometheus **Alerts** and **Target health** for anything that broke in that window
@@ -90,3 +92,4 @@ docker run --rm -v "$PWD/alertmanager:/etc/alertmanager" --entrypoint amtool \
 |---|---|---|---|---|
 | 2026-11-08 | Prometheus crash loop from `evalutation_interval` typo | ~3 min (manual) | ~5 min | Covered in the dead man's switch postmortem |
 | 2026-11-08 | Alertmanager stopped (drill) | ~10 min (3:54 → 4:04 PM) | ~12 min (3:54 → 4:06 PM) | `docs/postmortems/2026-11-08-alertmanager-deadmans-drill.md` |
+| 2026-11-09 | Power loss; 4 containers didn't return at boot, then Alertmanager gossip crash loop (real) | DOWN alert ~11:45 PM; acted on 9:41 AM | ~10 h | `docs/postmortems/2026-11-09-power-loss-monitoring-outage.md` |

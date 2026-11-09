@@ -20,9 +20,10 @@
 
 ## 1. Confirm (1 min)
 
+> Can't open ANY of the UIs (9090, 3000, 9093)? Check Tailscale on **your own device** first: it's the most common cause.
+
 1. Open **Prometheus → Status → Target health**: `http://100.66.160.124:9090/targets`
 2. Note which **job / instance** is DOWN and the **error** text.
-3. Can't openANY of UIs (9090, 3000, 9093)? check Tailscale on your own device first.
 
 | Error text | Usually means |
 |---|---|
@@ -60,6 +61,8 @@ sudo tailscale status
 | Cause | Fix |
 |---|---|
 | Container stopped | `docker compose start <service>` |
+| Several containers down after a power loss, crash or reboot, or **Up but no ports in the PORTS column** | `docker compose up -d --force-recreate`. A plain `up -d` can restart old containers with broken networking. |
+| Containers with `100.66.160.124:` ports fail at boot | Check `sysctl net.ipv4.ip_nonlocal_bind` = 1 (lets Docker bind before Tailscale is up). If missing: `echo 'net.ipv4.ip_nonlocal_bind = 1' \| sudo tee /etc/sysctl.d/99-tailscale-bind.conf && sudo sysctl --system` |
 | Container crash-looping (`Restarting`) | Read `docker compose logs <service> --tail 30`. If it's a config error, fix the file, validate (step 3a), then `docker compose restart <service>` |
 | curl works but Prometheus says timeout | UFW rule missing → `sudo ufw allow from 172.16.0.0/12 to any port 9100 proto tcp comment 'prometheus -> node_exporter'` |
 | Tailscale down / IP changed | `sudo systemctl restart tailscaled` then `sudo tailscale up`; if the 100.x IP changed, update `prometheus.yml`, `compose.yaml` ports, and `--web.listen-address` |
@@ -78,7 +81,7 @@ Must say **SUCCESS** for the config **and** the rules file. Use `check config`, 
 - [ ] Target health shows **UP**
 - [ ] Query `up` returns **1** for that target
 - [ ] **Resolved** notification arrives on the phone (~1–2 min after recovery)
-- [ ] `docker compose ps` — every container **Up**, none **Restarting**
+- [ ] `docker compose ps` — every container **Up**, none **Restarting**, and prometheus/grafana/ntfy/alertmanager show their `100.66.160.124:` ports
 
 ## 5. Follow up
 
@@ -91,3 +94,4 @@ Must say **SUCCESS** for the config **and** the rules file. Use `check config`, 
 | Date | What happened | Detect | Fix | Postmortem |
 |---|---|---|---|---|
 | 2026-11-08 | node_exporter stopped (drill) | ~3 min | <1 min | `docs/postmortems/2026-11-08-node-exporter-drill.md` |
+| 2026-11-09 | Power loss: 4 containers didn't come back at boot (real) | ~10 h | ~10 min | `docs/postmortems/2026-11-09-power-loss-monitoring-outage.md` |
