@@ -79,7 +79,7 @@ The dead man's switch worked as designed: it covers exactly this case, where Pro
 | 1 | Set `net.ipv4.ip_nonlocal_bind = 1` so Docker can bind to the Tailscale IP before Tailscale is up | Prevent | ✅ Done, reboot-tested |
 | 2 | Disable Alertmanager clustering (`--cluster.listen-address=`) | Prevent | ✅ Done |
 | 3 | Add "after power loss or crash: `docker compose up -d --force-recreate`" to `target-down.md` and `watchdog-down.md` | Mitigate | ✅ Done|
-| 4 | Put the Beelink on the CyberPower UPS with the NAS | Prevent | ⬜ TODO |
+| 4 | Put the Beelink on the CyberPower UPS with the NAS | Prevent | ✅ Done |
 | 5 | Set up NUT (Network UPS Tools) for clean shutdown on long outages, with a power-loss alert to ntfy | Prevent / Detect |✅ Done  |
 | 6 | Decide whether a monitoring-host outage should wake me up. If yes, allow Discord notifications from the alert channel during Do Not Disturb, or add a louder healthchecks.io integration | Detect | ✅ Done, Discord |
 | 7 | Add reboot testing to the change process: after host-level changes, `sudo reboot` and check `docker compose ps` | Prevent | ✅ Done (added to `monitoring-changes.md`) |
