@@ -1,0 +1,8 @@
+# For all computers, act as the boss  and do three jobs in order: make it safe, install Docker, install Tailscale.
+- name: Base setup for every homelab host
+  hosts: all
+  become: true
+  roles:
+    - base
+    - docker
+    - tailscale

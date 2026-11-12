@@ -1,0 +1,15 @@
+# Notes the robot can read while working on any computer
+
+ansible_become_exe: sudo.ws
+
+admin_user: mmoxey
+
+base_packages: # shopping list of programs every computer gets
+  - curl
+  - git
+  - htop
+  - ufw
+  - unattended-upgrades
+
+ufw_rules_common: [] # SH now has its own task in the base role.
+ufw_rules_extra: [] # no extra firewall holes, unless a group’s own file

@@ -1,0 +1,15 @@
+---                                   
+- hosts: all                          # which inventory hosts/groups this play targets
+  become: true                        # run tasks with sudo (needs --ask-become-pass)
+  tasks:                              # list of steps, run top to bottom
+    - name: Ensure chrony (NTP) is installed      # label shown in the output
+      ansible.builtin.apt:                        # module: Ubuntu/Debian package manager
+        name: chrony                              # package to install 
+        state: present                            # installed; does nothing if already there
+        update_cache: true                        # apt update first, so the package list is fresh
+
+    - name: Ensure chrony is running and starts on boot
+      ansible.builtin.service:                    # module: manage systemd services
+        name: chrony                              # service name
+        state: started                            # start it now if it isn't running
+        enabled: true                             # start automatically after a reboot

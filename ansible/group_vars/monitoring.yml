@@ -1,0 +1,2 @@
+ufw_rules_extra:
+  - { port: "9100", proto: tcp, from: "172.16.0.0/12", comment: "prometheus -> node_exporter" }

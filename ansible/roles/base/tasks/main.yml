@@ -1,0 +1,81 @@
+# install everything on the shopping list
+- name: Install base packages
+  ansible.builtin.apt:
+    name: "{{ base_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# copy the "keys only, no passwords" rules into place.
+# validate = check the rules are written correctly before putting them in.
+# notify = if anything changed, ring the bell so SSH restarts.
+- name: Install SSH hardening drop-in
+  ansible.builtin.copy:
+    src: 10-hardening.conf
+    dest: /etc/ssh/sshd_config.d/10-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Restart ssh
+
+# open the SSH door first, so turning the firewall on can never lock me out
+- name: Allow SSH
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+
+# open every door on the list. loop = repeat this step once for each item.
+- name: Allow other firewall rules
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    from_ip: "{{ item.from | default('any') }}"
+    comment: "{{ item.comment }}"
+  loop: "{{ ufw_rules_common + ufw_rules_extra }}"
+  loop_control:
+    label: "{{ item.comment }}"
+
+# lock every other door
+- name: Default deny incoming
+  community.general.ufw:
+    direction: incoming
+    default: deny
+
+# let this computer reach out to the internet
+- name: Default allow outgoing
+  community.general.ufw:
+    direction: outgoing
+    default: allow
+
+# switch the firewall on
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+
+# let containers claim their Tailscale address before Tailscale has woken up
+- name: Allow binding to Tailscale IP before it's up
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_nonlocal_bind
+    value: "1"
+    sysctl_file: /etc/sysctl.d/99-tailscale-bind.conf
+    state: present
+    reload: true
+
+# install security updates automatically, every day
+- name: Turn on unattended-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+- name: Make sure unattended-upgrades is running
+  ansible.builtin.service:
+    name: unattended-upgrades
+    state: started
+    enabled: true

@@ -1,0 +1,59 @@
+# Docs step: "sudo apt-get install ca-certificates curl"
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+    state: present
+
+# Docs step: "sudo install -m 0755 -d /etc/apt/keyrings"
+- name: Make keyrings folder
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+# Docs step: "sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc"
+- name: Add Docker's GPG key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+# Docs step: add the Docker repository to apt sources
+- name: Add Docker's apt repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/ubuntu
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: stable
+    architectures: amd64
+    signed_by: /etc/apt/keyrings/docker.asc
+    state: present
+
+# Docs step: "sudo apt-get install docker-ce docker-ce-cli containerd.io ..."
+- name: Install Docker Engine and Compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+# Post-install step: "sudo usermod -aG docker $USER"
+- name: Let {{ admin_user }} run docker without sudo
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: docker
+    append: true
+
+# Post-install step: "sudo systemctl enable docker"
+- name: Docker starts on boot
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
