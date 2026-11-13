@@ -14,7 +14,7 @@ receiving pings and emailed me that the check was DOWN ~10 minutes after the
 outage began.
 
 ## Impact
-- Alertmanager was down for ~[X] minutes.
+- Alertmanager was down for 10 minutes.
 - During that window, no alerts (e.g. TargetDown) could have reached my phone.
 - No user-facing services were affected.
 
@@ -56,7 +56,7 @@ Planned: the Alertmanager container was stopped on purpose.
   every restart would have caught it.
 
 ## Action items
-- [ ] Lower the healthchecks.io period/grace to 2 min / 3 min
+- [ x ] Lower the healthchecks.io period/grace to 2 min / 3 min
 - [ x ] Add a second independent notification channel to healthchecks.io
 - [ x ] Always run `promtool check config` (not just `check rules`) before restarting Prometheus
 - [ x ] Pin the Alertmanager image to an exact version (currently `latest`)
