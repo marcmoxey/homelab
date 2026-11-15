@@ -18,3 +18,19 @@ groups:
         annotations:
           summary: "Dead man's switch: always firing while alerting works"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/watchdog-down.md"
+
+      - alert: DriveHot
+        expr: smartctl_device_temperature{temperature_type="current"} > 50
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.device }} on {{ $labels.instance }} is {{ $value }}°C"
+
+      - alert: DriveFailing
+        expr: smartctl_device_smart_status != 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.device }} on {{ $labels.instance }} failed its SMART health check"
