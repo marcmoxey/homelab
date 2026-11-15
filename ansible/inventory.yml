@@ -13,4 +13,5 @@ all:
     storage:
       hosts:
         nas:
-          ansible_host: 
+          ansible_host: 100.105.219.6
+
