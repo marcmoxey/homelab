@@ -26,6 +26,7 @@ groups:
           severity: warning
         annotations:
           summary: "{{ $labels.device }} on {{ $labels.instance }} is {{ $value }}°C"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/drive-hot.md"
 
       - alert: DriveFailing
         expr: smartctl_device_smart_status != 1
