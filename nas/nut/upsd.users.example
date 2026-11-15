@@ -1,0 +1,7 @@
+[upsmon_primary]
+    password = CHANGE-ME
+    upsmon primary
+
+[upsmon_secondary]
+    password = CHANGE-ME
+    upsmon secondary

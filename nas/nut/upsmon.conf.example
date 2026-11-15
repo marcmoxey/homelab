@@ -1,0 +1,1 @@
+MONITOR cyberpower@localhost 1 upsmon_primary CHANGE-ME primary
