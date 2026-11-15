@@ -1,0 +1,3 @@
+ufw_rules_extra:
+  - { port: "9100", proto: tcp, from: "100.66.160.124", comment: "beelink prometheus -> node_exporter"}
+  - { port: "9633", proto: tcp, from: "100.66.160.124", comment: "beelink prometheus -> smartctl_exporter"}
