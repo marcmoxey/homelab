@@ -92,6 +92,21 @@ docker stats --no-stream
 - [ ] Add a row to the History table below and to the brag doc's Incidents table
 - [ ] Step missing or wrong? Update this runbook and commit
 
+
+## Backups & restore
+- Script: `nas/gameservers/minecraft/backup.sh` (cron lines are in its header)
+- Hourly: keep 24 → `/opt/backups/minecraft/prominence2/hourly/`
+- Daily 4:30 AM: keep 7 → `/opt/backups/minecraft/prominence2/daily/`
+- Log: `/home/mmoxey/mc-backup.log`
+- Restore test 2026-11-18: archive unpacks cleanly, world 418 MB ✅
+
+### Restore the world
+1. `docker compose stop prominence2`
+2. `mv /opt/appdata/minecraft/prominence /opt/appdata/minecraft/prominence.broken`
+3. `mkdir /opt/appdata/minecraft/prominence`
+4. `tar -xzf <backup>.tar.gz -C /opt/appdata/minecraft/prominence`
+5. `docker compose start prominence2` → wait for `Done` → join and check
+
 ## History
 
 | Date | What happened | Detect | Down for | Postmortem |
