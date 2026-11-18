@@ -11,8 +11,6 @@ services:
       MEMORY: "10G"
       #ENABLE_WHITELIST: "TRUE"         # turn the whitelist on
       #ENFORCE_WHITELIST: "TRUE"        # kick anyone online who isn't on the list
-      #WHITELIST: "YourName,Friend1,Friend2"
-      #OPS: "shadvonic"                  # admin (operator): you only
       ONLINE_MODE: "TRUE"
       TZ: "America/New_York"
     ports:
