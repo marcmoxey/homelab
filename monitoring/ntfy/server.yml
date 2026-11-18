@@ -3,7 +3,7 @@ base-url: "http://100.66.160.124:8080"
 
 # Keep message on disk so the phone can catch up after being online 
 cache-file: "/var/cache/ntfy/cache.db"
-cache-duration: "12h"
+cache-duration: "72h"
 
 # Require login
 auth-file: "/var/lib/ntfy/user.db:"
