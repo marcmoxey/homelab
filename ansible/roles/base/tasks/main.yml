@@ -79,3 +79,7 @@
     name: unattended-upgrades
     state: started
     enabled: true
+
+- name: Set timezone
+  community.general.timezone:
+    name: America/New_York
