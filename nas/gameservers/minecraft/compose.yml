@@ -9,8 +9,9 @@ services:
       #CF_SLUG: "<modpack-slug>"                 # from the modpack's CurseForge URL
       CF_PAGE_URL: "https://www.curseforge.com/minecraft/modpacks/prominence-2-hasturian-era/files/9563730"
       MEMORY: "10G"
-      #ENABLE_WHITELIST: "TRUE"         # turn the whitelist on
-      #ENFORCE_WHITELIST: "TRUE"        # kick anyone online who isn't on the list
+      mem_limit: 14g
+      ENABLE_WHITELIST: "TRUE"         # turn the whitelist on
+      ENFORCE_WHITELIST: "TRUE"        # kick anyone online who isn't on the list
       ONLINE_MODE: "TRUE"
       TZ: "America/New_York"
     ports:
