@@ -35,3 +35,11 @@ groups:
           severity: critical
         annotations:
           summary: "{{ $labels.device }} on {{ $labels.instance }} failed its SMART health check"
+
+      - alert: MinecraftDown
+        expr: minecraft_status_healthy == 0
+        for: 2m
+        labels:
+          serverity: critical
+        annotations:
+          summary: "Minecraft server {{ $labels.server_host }} is not responding"
