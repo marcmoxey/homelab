@@ -1,0 +1,33 @@
+services:
+  prominence2:
+    image: itzg/minecraft-server:2026.11.0-java17       
+    container_name: prominence2
+    env_file: .env                              # CF_API_KEY
+    environment:
+      EULA: "TRUE"
+      TYPE: AUTO_CURSEFORGE
+      #CF_SLUG: "<modpack-slug>"                 # from the modpack's CurseForge URL
+      CF_PAGE_URL: "https://www.curseforge.com/minecraft/modpacks/prominence-2-hasturian-era/files/9563730"
+      MEMORY: "10G"
+      #ENABLE_WHITELIST: "TRUE"         # turn the whitelist on
+      #ENFORCE_WHITELIST: "TRUE"        # kick anyone online who isn't on the list
+      #WHITELIST: "YourName,Friend1,Friend2"
+      #OPS: "shadvonic"                  # admin (operator): you only
+      ONLINE_MODE: "TRUE"
+      TZ: "America/New_York"
+    ports:
+      - "25565:25565"                           # friends connect here
+    volumes:
+      - /opt/appdata/minecraft/prominence:/data            # the world lives on the NVMe
+    restart: unless-stopped
+
+  mc-monitor:
+    image: itzg/mc-monitor:1.21.0               
+    command: export-for-prometheus
+    environment:
+      EXPORT_SERVERS: "prominence2:25565"
+    ports:
+      - "100.105.219.6:9150:8080"               # Tailscale only, for Prometheus
+    depends_on:
+      - prominence2
+    restart: unless-stopped
