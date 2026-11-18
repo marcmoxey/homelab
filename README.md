@@ -1,6 +1,6 @@
 # homelab
 
-A two-machine homelab run like a small production environment: everything is defined in Git, every alert has a runbook, and every outage — real or drilled — gets a blameless postmortem.
+A two-machine homelab run like a small production environment: everything is defined in Git, every alert has a runbook, and every outage real or drilled gets a blameless postmortem.
 
 ![Homelab diagram](docs/homelab-diagram.png)
 
