@@ -25,6 +25,8 @@ services:
     command:
       - '--docker_only=true'
       - '--housekeeping_interval=30s'
+      - '--store_container_labels=false'
+      - '--whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service'
     ports:
      - "100.105.219.6:8081:8080"
     volumes:
