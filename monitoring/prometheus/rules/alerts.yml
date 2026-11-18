@@ -40,6 +40,7 @@ groups:
         expr: minecraft_status_healthy == 0
         for: 2m
         labels:
-          serverity: critical
+          severity: critical
         annotations:
           summary: "Minecraft server {{ $labels.server_host }} is not responding"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/minecraft-down.md"
