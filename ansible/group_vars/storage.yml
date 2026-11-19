@@ -2,5 +2,9 @@ ufw_rules_extra:
   - { port: "9100", proto: tcp, from: "100.66.160.124", comment: "beelink prometheus -> node_exporter"}
   - { port: "9633", proto: tcp, from: "100.66.160.124", comment: "beelink prometheus -> smartctl_exporter"}
   - { port: "3493", proto: tcp, from: "100.66.160.124", comment: "beelink -> nut" }
-  - { port: "0150", proto: tcp, from: "100.66.160.124", comment: "beelink prometheus -> mc-monitor" }
+  - { port: "9150", proto: tcp, from: "100.66.160.124", comment: "beelink prometheus -> mc-monitor" }
+  - { port: "445", proto: tcp, from: "192.168.0.0/24", comment: "samba from home LAN" }
+  - { port: "445", proto: tcp, from: "100.64.0.0/10",  comment: "samba over Tailscale" } 
   - { port: "8081", proto: tcp, from: "100.66.160.124", comment: "beelink prometheus -> cadvisor" }
+  - { port: "6875", proto: tcp, from: "192.168.0.0/24", comment: "bookstack from home LAN" }
+  - { port: "6875", proto: tcp, from: "100.64.0.0/10",  comment: "bookstack over Tailscale" }
