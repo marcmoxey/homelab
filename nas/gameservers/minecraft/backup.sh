@@ -10,7 +10,7 @@ esac
 
 SERVER="prominence2"
 SRC="/opt/appdata/minecraft/prominence"
-DEST="/opt/backups/minecraft/${SERVER}/${MODE}" # CHANGED: separate hourly/ and daily/ folders
+DEST="/tank/backups/minecraft/${SERVER}/${MODE}" # CHANGED: separate hourly/ and daily/ folders
 TS="$(date +%F_%H-%M-%S)"
 FILE="${DEST}/${SERVER}_${MODE}_${TS}.tar.gz"   # NEW: e.g. prominence2_hourly_2026-11-18_10-00-00.tar.gz
 
