@@ -53,6 +53,15 @@ scrape_configs:
       - targets: ["http://100.105.219.6:6875/login"]
         labels:
           service: bookstack
+          severity: warning
+      - targets: ["https://nas.tailf2e508.ts.net/alive"]
+        labels:
+          service: vaultwarden
+          severity: critical
+      - targets: ["http://100.105.219.6:2283/api/server/ping"]
+        labels:
+          service: immich
+          severity: warning
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

@@ -76,3 +76,19 @@ groups:
         annotations:
           summary: "BookStack is not loading ({{ $labels.instance }})"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/bookstack-down.md"
+      - alert: ServiceDown
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: "{{ $labels.severity }}"
+        annotations:
+          summary: "{{ $labels.service }} is down ({{ $labels.instance }})"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/{{ $labels.service }}-down.md"
+
+      - alert: CertExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS cert for {{ $labels.service }} expires in {{ $value | humanize }} days"
