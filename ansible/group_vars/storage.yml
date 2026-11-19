@@ -8,3 +8,5 @@ ufw_rules_extra:
   - { port: "8081", proto: tcp, from: "100.66.160.124", comment: "beelink prometheus -> cadvisor" }
   - { port: "6875", proto: tcp, from: "192.168.0.0/24", comment: "bookstack from home LAN" }
   - { port: "6875", proto: tcp, from: "100.64.0.0/10",  comment: "bookstack over Tailscale" }
+  - { port: "2283", proto: tcp, from: "192.168.0.0/24", comment: "immich from home LAN" }
+  - { port: "2283", proto: tcp, from: "100.64.0.0/10",  comment: "immich over Tailscale" }
