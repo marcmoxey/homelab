@@ -44,3 +44,19 @@ scrape_configs:
   - job_name: cadvisor
     static_configs:
       - targets: ["100.105.219.6:8081"]
+
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ["http://100.105.219.6:6875/login"]
+        labels:
+          service: bookstack
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115

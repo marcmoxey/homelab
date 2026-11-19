@@ -81,7 +81,13 @@ services: # start list of containers to run
       - ntfy
     restart: unless-stopped
 
-
+  blackbox:
+    image: prom/blackbox-exporter:v0.27.0     # check GitHub releases for the newest tag
+    container_name: blackbox
+    command: --config.file=/config/blackbox.yml
+    volumes:
+      - ./blackbox/blackbox.yml:/config/blackbox.yml:ro
+    restart: unless-stopped
 
 
 volumes:
