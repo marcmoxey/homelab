@@ -1,0 +1,41 @@
+services:
+  bookstack:
+    image: lscr.io/linuxserver/bookstack:v26.09.3-ls299     # pin a version tag after it works
+    container_name: bookstack
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "America/New_York"
+      APP_URL: "http://nas:6875"
+      APP_KEY: ${APP_KEY}
+      DB_HOST: bookstack-db
+      DB_PORT: "3306"
+      DB_DATABASE: bookstack
+      DB_USERNAME: bookstack
+      DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - /opt/appdata/bookstack/config:/config
+    ports:
+      - "6875:80"
+    depends_on:
+      bookstack-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  bookstack-db:
+    image: mariadb:11.8
+    container_name: bookstack-db
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: bookstack
+      MARIADB_USER: bookstack
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      TZ: "America/New_York"
+    volumes:
+      - /opt/appdata/bookstack/db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
