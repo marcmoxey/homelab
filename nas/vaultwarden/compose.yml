@@ -1,0 +1,15 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:1.34.3    # check github.com/dani-garcia/vaultwarden/releases for the newest, then pin it
+    container_name: vaultwarden
+    environment:
+      DOMAIN: "https://nas.tailf2e508.ts.net"
+      SIGNUPS_ALLOWED: "false"           # change to "false" right after you create your account
+      INVITATIONS_ALLOWED: "false"
+      SHOW_PASSWORD_HINT: "false"
+      TZ: "America/New_York"
+    volumes:
+      - /opt/appdata/vaultwarden:/data
+    ports:
+      - "127.0.0.1:8080:80"
+    restart: unless-stopped
