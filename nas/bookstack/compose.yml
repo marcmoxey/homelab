@@ -1,6 +1,6 @@
 services:
   bookstack:
-    image: lscr.io/linuxserver/bookstack:v26.09.3-ls299     # pin a version tag after it works
+    image: lscr.io/linuxserver/bookstack:v26.09.3-ls299
     container_name: bookstack
     environment:
       PUID: "1000"
