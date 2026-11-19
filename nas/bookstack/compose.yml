@@ -16,7 +16,8 @@ services:
     volumes:
       - /opt/appdata/bookstack/config:/config
     ports:
-      - "6875:80"
+      - "192.168.0.231:6875:80"
+      - "100.105.219.6:6875:80"
     depends_on:
       bookstack-db:
         condition: service_healthy
