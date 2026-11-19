@@ -44,3 +44,13 @@ groups:
         annotations:
           summary: "Minecraft server {{ $labels.server_host }} is not responding"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/minecraft-down.md"
+
+
+      - alert: ZpoolNotOnline
+        expr: node_zfs_zpool_state{state="online"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ZFS pool {{ $labels.zpool }} is not ONLINE (degraded or worse)"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/zpool-not-online.md"
