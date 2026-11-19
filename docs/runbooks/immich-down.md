@@ -116,4 +116,4 @@ Then open Immich, check albums and people, and open a few photos.
 
 | Date | What happened | Detect | Down for | Postmortem |
 |---|---|---|---|---|
-| | | | | |
+| 2026-11-19 | Deployed on the Beelink by mistake; probe found nothing on the NAS | Fired 5:33 PM | ~15 min (RESOLVED 5:48 PM) | — |

@@ -106,5 +106,4 @@ df -h /opt/appdata                      # NVMe full?
 
 | Date | What happened | Detect | Down for | Postmortem |
 |---|---|---|---|---|
-| | | | | |
-
+| 2026-11-19 | Broken compose.yml during port re-bind took BookStack down | ~3 min (FIRING 3:56 PM) | ~8 min (RESOLVED 4:01 PM) | — |
