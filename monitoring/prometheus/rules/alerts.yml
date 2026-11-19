@@ -66,3 +66,13 @@ groups:
         annotations:
           summary: "{{ $labels.instance }} has less than 10% RAM available"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/low-memory.md"
+
+
+      - alert: BookStackDown
+        expr: probe_success{service="bookstack"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "BookStack is not loading ({{ $labels.instance }})"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/bookstack-down.md"
