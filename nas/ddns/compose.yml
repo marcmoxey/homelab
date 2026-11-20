@@ -11,5 +11,6 @@ services:
       - DOMAINS=watch.marcshometheater.org,request.marcshometheater.org
       - PROXIED=false
       - IP6_PROVIDER=none
+      - HEALTHCHECKS=${HEALTHCHECKS}
       - TZ=America/New_York
     restart: unless-stopped
