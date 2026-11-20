@@ -62,6 +62,14 @@ scrape_configs:
         labels:
           service: immich
           severity: warning
+      - targets: ['https://watch.marcshometheater.org/health']
+        labels:
+          service: jellyfin-public
+          severity: critical
+      - targets: ['https://request.marcshometheater.org/api/v1/status']
+        labels:
+          service: seerr-public
+          severity: warning
       - targets: ["http://100.105.219.6:8096/health"]
         labels: { service: jellyfin, severity: critical }
       - targets: ["http://100.105.219.6:5055/api/v1/status"]
