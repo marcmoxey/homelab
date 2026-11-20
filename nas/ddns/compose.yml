@@ -1,6 +1,6 @@
 services:
   cloudflare-ddns:
-    image: favonia/cloudflare-ddns:1
+    image: favonia/cloudflare-ddns:1.18.0
     container_name: cloudflare-ddns
     user: "1000:1000"
     read_only: true

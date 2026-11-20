@@ -1,6 +1,6 @@
 services:
   sabnzbd:
-    image: lscr.io/linuxserver/sabnzbd:latest
+    image: lscr.io/linuxserver/sabnzbd:5.1.3-ls282
     container_name: sabnzbd
     environment:
       - PUID=1000
@@ -16,7 +16,7 @@ services:
 
 
   prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
+    image: lscr.io/linuxserver/prowlarr:3.0.2.5780-ls169
     container_name: prowlarr
     environment:
       - PUID=1000
@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
 
   radarr:
-    image: lscr.io/linuxserver/radarr:latest
+    image: lscr.io/linuxserver/radarr:7.0.3.10918-ls328
     container_name: radarr
     environment:
       - PUID=1000
@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
 
   sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
+    image: lscr.io/linuxserver/sonarr:4.0.20.3014-ls5
     container_name: sonarr
     environment:
       - PUID=1000
@@ -60,7 +60,7 @@ services:
     restart: unless-stopped
 
   jellyfin:
-    image: lscr.io/linuxserver/jellyfin:latest
+    image: lscr.io/linuxserver/jellyfin:12.4ubu2604-ls60
     container_name: jellyfin
     environment:
       - PUID=1000
@@ -78,7 +78,7 @@ services:
     restart: unless-stopped
 
   seerr:
-    image: ghcr.io/seerr-team/seerr:latest
+    image: ghcr.io/seerr-team/seerr:v3.5.2
     container_name: seerr
     init: true                                   # required by this image
     environment:
@@ -91,7 +91,7 @@ services:
     restart: unless-stopped
 
   bazarr:
-    image: lscr.io/linuxserver/bazarr:latest
+    image: lscr.io/linuxserver/bazarr:v1.6.2-ls373
     container_name: bazarr
     environment:
       - PUID=1000
@@ -106,7 +106,7 @@ services:
     restart: unless-stopped
 
   clonarr:
-    image: ghcr.io/prophetse7en/clonarr:latest
+    image: ghcr.io/prophetse7en/clonarr:v3.5.0
     container_name: clonarr
     environment:
       - PUID=1000                                # template default is 99/100 (Unraid); yours is 1000
@@ -120,7 +120,7 @@ services:
     restart: unless-stopped
 
   jellystat-db:
-    image: postgres:16
+    image: postgres:16.16
     container_name: jellystat-db
     environment:
       - POSTGRES_USER=jellystat
@@ -130,7 +130,7 @@ services:
     restart: unless-stopped
 
   jellystat:
-    image: cyfershepard/jellystat:latest
+    image: cyfershepard/jellystat:1.1.12
     container_name: jellystat
     environment:
       - POSTGRES_USER=jellystat
@@ -149,7 +149,7 @@ services:
     restart: unless-stopped
 
   caddy:
-    image: caddy:2
+    image: caddy:2.11.9
     container_name: caddy
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
