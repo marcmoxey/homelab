@@ -113,4 +113,4 @@ Anything saved after that backup was taken is only on the devices that saved it 
 
 | Date | What happened | Detect | Down for | Postmortem |
 |---|---|---|---|---|
-| | | | | |
+| 2026-11-19 | Drill: stopped container to test ServiceDown (critical) | FIRING 6:04 PM | ~5 min (RESOLVED 6:09 PM) | — |
