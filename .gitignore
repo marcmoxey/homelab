@@ -8,3 +8,4 @@ data/
 monitoring/ntfy-alertmanager/config
 monitoring/ntfy-alertmanager/config
 monitoring/alertmanager/secrets/
+nas/ddns/.env
