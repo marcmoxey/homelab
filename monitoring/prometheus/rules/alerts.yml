@@ -1,6 +1,7 @@
 groups:
   - name: homelab
     rules:
+      # ---------- scraping & alerting health ----------
       - alert: TargetDown           # a scrape target is unreachable
         expr: up == 0
         for: 2m
@@ -10,7 +11,6 @@ groups:
           summary: "{{ $labels.job }} on {{ $labels.instance }} is down"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/target-down.md"
 
-
       - alert: Watchdog
         expr: vector(1)
         labels:
@@ -19,6 +19,7 @@ groups:
           summary: "Dead man's switch: always firing while alerting works"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/watchdog-down.md"
 
+      # ---------- drives & pool ----------
       - alert: DriveHot
         expr: smartctl_device_temperature{temperature_type="current"} > 50
         for: 10m
@@ -37,17 +38,6 @@ groups:
           summary: "{{ $labels.device }} on {{ $labels.instance }} failed its SMART health check"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/drive-failing.md"
 
-
-      - alert: MinecraftDown
-        expr: minecraft_status_healthy == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Minecraft server {{ $labels.server_host }} is not responding"
-          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/minecraft-down.md"
-
-
       - alert: ZpoolNotOnline
         expr: node_zfs_zpool_state{state="online"} == 0
         for: 1m
@@ -57,7 +47,40 @@ groups:
           summary: "ZFS pool {{ $labels.zpool }} is not ONLINE (degraded or worse)"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/zpool-not-online.md"
 
+      # ---------- disk space ----------
+      - alert: DiskSpaceLow
+        expr: |
+          node_filesystem_avail_bytes{fstype="ext4"}
+            / node_filesystem_size_bytes{fstype="ext4"} < 0.15
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.mountpoint }} on {{ $labels.instance }} has {{ $value | humanizePercentage }} free"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/disk-space-low.md"
 
+      - alert: PoolSpaceLow
+        expr: node_filesystem_avail_bytes{mountpoint="/tank", fstype="zfs"} < 7 * 1024^4
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ZFS pool tank has only {{ $value | humanize1024 }}B free (under 7 TiB, about 15%)"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/disk-space-low.md"
+
+      - alert: DiskWillFillIn24h
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{fstype="ext4"}[6h], 24 * 3600) < 0
+          or
+          predict_linear(node_filesystem_avail_bytes{mountpoint="/tank", fstype="zfs"}[6h], 24 * 3600) < 0
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.mountpoint }} on {{ $labels.instance }} will be full within 24h at the current rate"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/disk-space-low.md"
+
+      # ---------- hosts ----------
       - alert: LowMemory
         expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
         for: 10m
@@ -67,16 +90,17 @@ groups:
           summary: "{{ $labels.instance }} has less than 10% RAM available"
           runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/low-memory.md"
 
-
-      - alert: BookStackDown
-        expr: probe_success{service="bookstack"} == 0
+      # ---------- services ----------
+      - alert: MinecraftDown
+        expr: minecraft_status_healthy == 0
         for: 2m
         labels:
-          severity: warning
+          severity: critical
         annotations:
-          summary: "BookStack is not loading ({{ $labels.instance }})"
-          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/bookstack-down.md"
-      - alert: ServiceDown
+          summary: "Minecraft server {{ $labels.server_host }} is not responding"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/minecraft-down.md"
+
+      - alert: ServiceDown            # any blackbox-probed web app; replaces BookStackDown
         expr: probe_success == 0
         for: 2m
         labels:
@@ -92,3 +116,4 @@ groups:
           severity: warning
         annotations:
           summary: "TLS cert for {{ $labels.service }} expires in {{ $value | humanize }} days"
+          runbook_url: "https://github.com/marcmoxey/homelab/blob/main/docs/runbooks/caddy-down.md"
