@@ -1,0 +1,11 @@
+{
+	email moxeymarc@gmail.com
+}
+
+watch.marcshometheater.org {
+	reverse_proxy jellyfin:8096
+}
+
+request.marcshometheater.org {
+	reverse_proxy seerr:5055
+}

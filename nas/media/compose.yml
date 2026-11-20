@@ -21,10 +21,142 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=America/New_York                    # was Etc/UTC
+      - TZ=America/New_York
     volumes:
-      - /opt/appdata/media/prowlarr:/config    # was /path/to/prowlarr/data
+      - /opt/appdata/media/prowlarr:/config
     ports:
-      - "192.168.0.231:9696:9696"              # was 9696:9696 (all networks)
+      - "192.168.0.231:9696:9696"
       - "100.105.219.6:9696:9696"
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/media/radarr:/config
+      - /data:/data
+    ports:
+      - "192.168.0.231:7878:7878"
+      - "100.105.219.6:7878:7878"
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/media/sonarr:/config
+      - /data:/data
+    ports:
+      - "192.168.0.231:8989:8989"
+      - "100.105.219.6:8989:8989"
+    restart: unless-stopped
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - JELLYFIN_PublishedServerUrl=http://192.168.0.231:8096
+    volumes:
+      - /opt/appdata/media/jellyfin:/config
+      - /data/media:/data/media:ro
+    devices:
+      - /dev/dri:/dev/dri
+    ports:
+      - "192.168.0.231:8096:8096"
+      - "100.105.219.6:8096:8096"
+    restart: unless-stopped
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    init: true                                   # required by this image
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/media/seerr:/app/config
+    ports:
+      - "192.168.0.231:5055:5055"
+      - "100.105.219.6:5055:5055"
+    restart: unless-stopped
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/media/bazarr:/config
+      - /data:/data                              # writes .srt files next to the videos
+    ports:
+      - "192.168.0.231:6767:6767"
+      - "100.105.219.6:6767:6767"
+    restart: unless-stopped
+
+  clonarr:
+    image: ghcr.io/prophetse7en/clonarr:latest
+    container_name: clonarr
+    environment:
+      - PUID=1000                                # template default is 99/100 (Unraid); yours is 1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/media/clonarr:/config
+    ports:
+      - "192.168.0.231:6060:6060"
+      - "100.105.219.6:6060:6060"
+    restart: unless-stopped
+
+  jellystat-db:
+    image: postgres:16
+    container_name: jellystat-db
+    environment:
+      - POSTGRES_USER=jellystat
+      - POSTGRES_PASSWORD=${JELLYSTAT_DB_PASSWORD}
+    volumes:
+      - /opt/appdata/media/jellystat/db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  jellystat:
+    image: cyfershepard/jellystat:latest
+    container_name: jellystat
+    environment:
+      - POSTGRES_USER=jellystat
+      - POSTGRES_PASSWORD=${JELLYSTAT_DB_PASSWORD}
+      - POSTGRES_IP=jellystat-db
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${JELLYSTAT_JWT_SECRET}
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/media/jellystat/backup:/app/backend/backup-data
+    ports:
+      - "192.168.0.231:3001:3000"
+      - "100.105.219.6:3001:3000"
+    depends_on:
+      - jellystat-db
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/appdata/media/caddy/data:/data
+      - /opt/appdata/media/caddy/config:/config
+    ports:
+      - "192.168.0.231:80:80"
+      - "192.168.0.231:443:443"
+      - "192.168.0.231:443:443/udp"
     restart: unless-stopped
