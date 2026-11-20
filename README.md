@@ -18,7 +18,7 @@ The two machines talk over **Tailscale**. Internal services are bound to the LAN
 
 | Port | Goes to | Why |
 |---|---|---|
-| 443 / 80 | Caddy → Jellyfin (`watch.marcshometheater.org`) and Seerr (`request.marcshometheater.org`) | Family on smart TVs; automatic HTTPS, admin login blocked from outside, per-user lockouts |
+| 443 / 80 | Caddy → Jellyfin (`watch.<your-domain>`) and Seerr (`request.<your-domain>`) | Family on smart TVs; automatic HTTPS, admin login blocked from outside, per-user lockouts |
 | 25565 | Minecraft | Whitelisted game server |
 
 Vaultwarden is reachable only through `tailscale serve` (HTTPS, tailnet only); everything else is LAN + Tailscale.
