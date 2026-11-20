@@ -1,0 +1,30 @@
+services:
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/media/sabnzbd:/config
+      - /data/usenet:/data/usenet
+    ports:
+      - "192.168.0.231:8085:8080"
+      - "100.105.219.6:8085:8080"
+    restart: unless-stopped
+
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York                    # was Etc/UTC
+    volumes:
+      - /opt/appdata/media/prowlarr:/config    # was /path/to/prowlarr/data
+    ports:
+      - "192.168.0.231:9696:9696"              # was 9696:9696 (all networks)
+      - "100.105.219.6:9696:9696"
+    restart: unless-stopped
