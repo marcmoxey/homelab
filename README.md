@@ -8,29 +8,39 @@ A two-machine homelab run like a small production environment: everything is def
 
 | Machine | Role | Runs |
 |---|---|---|
-| **NAS** — Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | Modded Minecraft server, mc-monitor, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
-| **Beelink SER Pro** — Ubuntu 26.04 | Watches everything | Prometheus, Grafana, Alertmanager, ntfy (push to phone), node_exporter, NUT client |
-| **healthchecks.io** | Watches the watcher | Dead man's switch for the alerting chain, plus backup checks |
+| **NAS** — Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | **Media:** Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, Bazarr, Clonarr, Jellystat, Caddy ([docs/media.md](docs/media.md)) · **Apps:** Vaultwarden, Immich, BookStack · **Games:** modded Minecraft + mc-monitor · **Infra:** Samba, Cloudflare DDNS, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
+| **Beelink SER Pro** — Ubuntu 26.04 | Watches everything | Prometheus, Grafana, Alertmanager, blackbox exporter, ntfy (push to phone), node_exporter, NUT client |
+| **healthchecks.io** | Watches the watcher | Dead man's switch for the alerting chain, backup checks, DDNS heartbeat |
 
-The two machines talk over **Tailscale**. Every monitoring port is bound to a Tailscale address and allowed only from the monitoring host in UFW; the only port open to the internet is the Minecraft server (whitelisted).
+The two machines talk over **Tailscale**. Internal services are bound to the LAN and Tailscale addresses only (Docker-published ports bypass UFW, so nothing internal listens on `0.0.0.0`).
+
+**Exposed to the internet — and nothing else:**
+
+| Port | Goes to | Why |
+|---|---|---|
+| 443 / 80 | Caddy → Jellyfin (`watch.marcshometheater.org`) and Seerr (`request.marcshometheater.org`) | Family on smart TVs; automatic HTTPS, admin login blocked from outside, per-user lockouts |
+| 25565 | Minecraft | Whitelisted game server |
+
+Vaultwarden is reachable only through `tailscale serve` (HTTPS, tailnet only); everything else is LAN + Tailscale.
 
 ## Storage
 
-| Dataset | Mount | Used for |
+| Dataset / disk | Mount | Used for |
 |---|---|---|
-| `tank/data` (recordsize 1M) | `/data` | Media and downloads (TRaSH Guides layout) |
-| `tank/files` | `/tank/files` | File shares |
-| `tank/photos` | `/tank/photos` | Photos |
+| `tank/data` (recordsize 1M) | `/data` | Media library + Usenet downloads (TRaSH Guides hardlink layout) |
+| `tank/files` | `/tank/files` | Samba file share (SMB3 only, LAN + Tailscale) |
+| `tank/photos` | `/tank/photos` | Immich photo library + its database dumps |
 | `tank/gameservers` | `/tank/gameservers` | Game server data |
-| `tank/backups` | `/tank/backups` | Backups (e.g. Minecraft worlds) |
+| `tank/backups` | `/tank/backups` | Backups: Minecraft worlds, BookStack, Vaultwarden |
+| NVMe (1 TB) | `/opt/appdata` | Live app data and databases (fast tier) |
 
-RAIDZ1 survives any one drive failing. lz4 compression and `atime=off` on everything, ZFS ARC capped at 16 GiB, monthly scrubs. Fast, frequently written data (the live Minecraft world) stays on the NVMe; its backups go to the pool, so each copy is on different hardware.
+RAIDZ1 survives any one drive failing. lz4 compression and `atime=off` on everything, ZFS ARC capped at 16 GiB, monthly scrubs. Databases live on the NVMe; their backups go to the pool, so each copy is on different hardware. Off-site backup (restic → Backblaze B2) is next.
 
 ## How a problem reaches my phone
 
 ```
-exporter (NAS) → Prometheus (scrape every 15 s) → alert rule (for: …)
-              → Alertmanager → ntfy-alertmanager → ntfy → phone
+exporters / blackbox probes → Prometheus (every 15 s) → alert rule (for: …)
+             → Alertmanager → ntfy-alertmanager → ntfy → phone (with runbook link)
 Alertmanager → Watchdog heartbeat every 1 min → healthchecks.io → Discord / email / ntfy.sh
 ```
 
@@ -38,13 +48,16 @@ Alertmanager → Watchdog heartbeat every 1 min → healthchecks.io → Discord 
 |---|---|---|
 | TargetDown | Prometheus can't scrape a target for 2 min | [target-down.md](docs/runbooks/target-down.md) |
 | Watchdog (dead man's switch) | healthchecks.io stops getting heartbeats | [watchdog-down.md](docs/runbooks/watchdog-down.md) |
+| ServiceDown | Any probed web app stops answering for 2 min — Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, Immich, BookStack warning; public URLs once live | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
+| CertExpiringSoon | A TLS certificate expires in under 14 days | [caddy-down.md](docs/runbooks/caddy-down.md) |
+| MinecraftDown | The Minecraft server stops answering for 2 min | [minecraft-down.md](docs/runbooks/minecraft-down.md) |
 | DriveHot | A drive is above 50 °C for 10 min | [drive-hot.md](docs/runbooks/drive-hot.md) |
 | DriveFailing | A drive's SMART status reports FAILED | [drive-failing.md](docs/runbooks/drive-failing.md) |
 | ZpoolNotOnline | The ZFS pool is degraded or worse for 1 min | [zpool-not-online.md](docs/runbooks/zpool-not-online.md) |
+| DiskSpaceLow / PoolSpaceLow / DiskWillFillIn24h | An ext4 disk < 15% free, the pool < 7 TiB free, or anything on track to fill within 24 h | [disk-space-low.md](docs/runbooks/disk-space-low.md) |
 | LowMemory | A host has < 10% RAM available for 10 min | [low-memory.md](docs/runbooks/low-memory.md) |
-| MinecraftDown | The Minecraft server stops answering for 2 min | [minecraft-down.md](docs/runbooks/minecraft-down.md) |
 
-Every alert links to its runbook from the notification itself. New runbooks start from [`_TEMPLATE.md`](docs/runbooks/_TEMPLATE.md).
+One generic `ServiceDown` rule covers every probed service: the `service` and `severity` come from labels on the probe, and the runbook link is built from the service name — adding a service is one line of config, not a new rule. New runbooks start from [`_TEMPLATE.md`](docs/runbooks/_TEMPLATE.md).
 
 ## Dashboards
 
@@ -60,16 +73,25 @@ Grafana dashboards are saved as JSON in `monitoring/grafana/dashboards/`.
 ## Repo layout
 
 ```
-ansible/       Host provisioning (roles: base, docker, tailscale) for both machines
-monitoring/    Beelink stack: Prometheus, Grafana, Alertmanager, ntfy (Docker Compose)
-  grafana/dashboards/   Dashboard JSON
+ansible/          Host provisioning (roles: base, docker, tailscale; UFW rules in group_vars)
+monitoring/       Beelink stack: Prometheus, Grafana, Alertmanager, blackbox, ntfy
+  prometheus/rules/   Alert rules
+  grafana/dashboards/ Dashboard JSON
 nas/
-  exporters/             node_exporter, smartctl-exporter, cAdvisor
-  gameservers/minecraft/ Minecraft server + mc-monitor + backup.sh
-  nut/                   UPS config (passwords in *.example only)
+  media/          Jellyfin, Seerr, *arr apps, SABnzbd, Bazarr, Clonarr, Jellystat, Caddy (+ Caddyfile)
+  ddns/           Cloudflare DDNS (scoped API token, locked-down container)
+  vaultwarden/    Password manager + backup script
+  immich/         Photos (official compose + .env.example)
+  bookstack/      Wiki + MariaDB + backup script
+  gameservers/minecraft/  Minecraft server + mc-monitor + backup script
+  samba/          smb.conf
+  exporters/      node_exporter, smartctl-exporter, cAdvisor
+  nut/            UPS config (passwords in *.example only)
 docs/
-  runbooks/      What to do when each alert fires
-  postmortems/   Blameless write-ups of every outage and drill
+  media.md        Media stack, public access, hardening
+  cheatsheet.md   Everyday commands
+  runbooks/       What to do when each alert fires
+  postmortems/    Blameless write-ups of every outage and drill
 ```
 
 The same repo is cloned to `/opt/stacks` on both machines; each one runs only its own folders.
@@ -77,12 +99,13 @@ The same repo is cloned to `/opt/stacks` on both machines; each one runs only it
 ## Reliability practices
 
 - **Infrastructure as code:** Docker Compose for every service, Ansible for the hosts. A second Ansible run reports `changed=0`.
-- **Pinned versions:** every image (and the Minecraft modpack) is pinned; upgrades are a deliberate one-line change.
-- **Validate before restart:** `promtool check config` and `amtool check-config` before any Prometheus or Alertmanager restart.
-- **Reboot-tested:** after host-level changes the box is rebooted on purpose to prove everything comes back.
+- **Pinned versions:** images and the Minecraft modpack are pinned; upgrades are a deliberate one-line change.
+- **Validate before restart:** `docker compose config -q`, `promtool check config` and `amtool check-config` before any restart.
+- **Least exposure:** only Caddy (443/80) and Minecraft are internet-facing; every internal port is bound to LAN/Tailscale addresses; the Jellyfin admin account can't log in from the internet.
+- **Black-box monitoring:** a blackbox exporter loads each app the way a user would, so "container up, app broken" still alerts.
 - **Drills:** alerts are tested by breaking things on purpose. A drill isn't finished until the *Resolved* notification arrives.
 - **Planned maintenance under a silence:** Alertmanager silences scoped to the host being worked on, expired when it's back.
-- **Backups with a restore test:** Minecraft world backed up hourly (keep 24) and nightly (keep 7) to the ZFS pool. Saving is paused and flushed first so an archive is never caught mid-write; archives are written to a temp file and renamed only when complete; missed backups alert via healthchecks.io.
+- **Backups with restore tests:** Minecraft hourly + nightly, BookStack and Vaultwarden nightly, Immich database dumps — each restore-tested into a throwaway container; missed backups alert via healthchecks.io.
 - **Burn-in before trust:** drives got SMART short tests, a 48-hour destructive `badblocks` pass and SMART long tests; RAM got 4 passes of MemTest86 — all with zero errors before any data was stored.
 - **Power protection:** a CyberPower UPS shared via NUT so both machines can shut down cleanly.
 - **Secrets stay out of Git:** `.env` files, tokens and ping URLs are git-ignored; `*.example` files show the format.

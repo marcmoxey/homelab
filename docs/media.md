@@ -67,10 +67,39 @@ friend → watch.marcshometheater.org
 | Home devices | Pi-hole local DNS: both names → `192.168.0.231` | Avoids hairpin NAT; home traffic goes straight to the NAS |
 
 **App settings for the proxy**
-- Jellyfin → Networking: Known proxies `caddy`; Published Server URIs `all=https://watch.marcshometheater.org`;
-  LAN Networks `192.168.0.0/24`; internet streaming bitrate limit (e.g. 20 Mbps).
-- Jellyfin → Users: strong passwords; login attempts before lockout 5.
-- Seerr → General: Application URL `https://request.marcshometheater.org`; Enable Proxy Support on.
+- Jellyfin → Networking: Known proxies `caddy`; Published Server URI `https://watch.marcshometheater.org`
+  (with "use same URI for internal and external" on); LAN networks `192.168.0.0/24, 100.64.0.0/10`;
+  internet streaming bitrate limit ~20 Mbps; auto discovery off; Jellyfin's own HTTPS off (Caddy does TLS).
+- Seerr → General: Application URL `https://request.marcshometheater.org`; Enable Proxy Support on;
+  Enable CSRF Protection on.
+
+## Hardening (internet-facing: Jellyfin + Seerr)
+
+| Control | Setting |
+|---|---|
+| Exposure | Only Caddy (80/443) is forwarded; only `watch.` and `request.` route anywhere |
+| Admin account (`mmoxey`) | **Remote connections disabled** — admin works only from the home LAN or Tailscale (both listed in LAN networks) |
+| Viewing account (`marc`) | Separate non-admin account for TVs/phones away from home |
+| Every user | Strong unique password (Vaultwarden), lockout after 5 failed attempts, hidden from login screens, no "manage server", library access limited, Live TV off |
+| TV logins | **Quick Connect** on — TVs sign in with a 6-digit code approved from a phone; passwords never typed on a TV |
+| Seerr logins | Jellyfin sign-in only (**local sign-in off**), so Jellyfin's lockout protects Seerr too; new Jellyfin users can sign in without import |
+| Seerr permissions | Default: Request + View Recently Added + Report Issues; auto-approve per family member; limits 10 movies / 5 series per 7 days |
+| Patching | Jellyfin, Seerr and Caddy updated within ~a week of releases (pinned tags, changed deliberately) |
+| Next layer (planned) | CrowdSec reading Jellyfin/Caddy logs to ban repeated failed logins |
+
+## Monitoring
+
+| What | How | Severity |
+|---|---|---|
+| Jellyfin | Blackbox `http://100.105.219.6:8096/health` → `ServiceDown` | critical |
+| Seerr, Sonarr, Radarr, Prowlarr, SABnzbd | Blackbox probes (`/api/v1/status`, `/ping`, `/`) → `ServiceDown` | warning |
+| Public path (DNS, router, Caddy, certs) | Blackbox `https://watch…/health` (`jellyfin-public`, critical), `https://request…/api/v1/status` (`seerr-public`, warning) — added once the ports are open | critical / warning |
+| Certificates | `CertExpiringSoon` (< 14 days) from the public probes | warning |
+| DDNS container | healthchecks.io ping (`HEALTHCHECKS` in `nas/ddns/.env`) | — |
+| Disk space | `DiskSpaceLow` (ext4 < 15%), `PoolSpaceLow` (tank < 7 TiB), `DiskWillFillIn24h` | warning / critical |
+
+Runbooks: [media-down.md](runbooks/media-down.md), [caddy-down.md](runbooks/caddy-down.md),
+[disk-space-low.md](runbooks/disk-space-low.md). Per-service link files (`jellyfin-down.md`, …) point to these.
 
 **Monitoring:** Beelink blackbox probes `https://watch.marcshometheater.org/health`
 (`service: jellyfin-public`, critical) and `https://request.marcshometheater.org/api/v1/status`
@@ -146,24 +175,4 @@ Usenet provider login, indexer API keys, every app's login and API key,
 | Download never imports | Radarr/Sonarr → Activity → Queue shows the reason (usually paths or permissions) |
 | Hardlink check | `ls -li` on the download and the library file: same inode number = hardlink |
 | New subtitle not in player | Bazarr → Jellyfin integration on; or refresh the item in Jellyfin |
-| Wrong poster/match | Jellyfin → item → Identify |# Media stack (nas/media)
-
-Usenet → SABnzbd → Sonarr/Radarr → /data/media → Jellyfin. TRaSH Guides layout:
-every app that moves files mounts the whole `/data`, so imports are hardlinks.
-
-| App | Browser | From other containers | Config |
-|---|---|---|---|
-| SABnzbd | http://nas:8085 | sabnzbd:8080 | /opt/appdata/media/sabnzbd |
-| Prowlarr | http://nas:9696 | prowlarr:9696 | /opt/appdata/media/prowlarr |
-
-## SABnzbd settings that aren't in Git (sabnzbd.ini)
-Edit only while the container is stopped (`docker compose stop sabnzbd`), or SABnzbd overwrites the file.
-
-- `local_ranges = 192.168.0.0/24, 100.64.0.0/10, 172.16.0.0/12` — LAN, Tailscale, Docker.
-  Without it: "External internet access denied" (browser over Tailscale) or 403 (other containers).
-- `host_whitelist = sabnzbd, nas` — without it: 403 when apps call it by name.
-- Folders: incomplete `/data/usenet/incomplete`, complete `/data/usenet/complete`.
-- Categories: `tv` → `tv`, `movies` → `movies`.
-
-## Secrets (in Vaultwarden, never in Git)
-Usenet provider login, indexer API keys, each app's login and API key.
+| Wrong poster/match | Jellyfin → item → Identify |
