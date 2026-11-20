@@ -62,6 +62,18 @@ scrape_configs:
         labels:
           service: immich
           severity: warning
+      - targets: ["http://100.105.219.6:8096/health"]
+        labels: { service: jellyfin, severity: critical }
+      - targets: ["http://100.105.219.6:5055/api/v1/status"]
+        labels: { service: seerr, severity: warning }
+      - targets: ["http://100.105.219.6:8989/ping"]
+        labels: { service: sonarr, severity: warning }
+      - targets: ["http://100.105.219.6:7878/ping"]
+        labels: { service: radarr, severity: warning }
+      - targets: ["http://100.105.219.6:9696/ping"]
+        labels: { service: prowlarr, severity: warning }
+      - targets: ["http://100.105.219.6:8085/"]
+        labels: { service: sabnzbd, severity: warning }
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
