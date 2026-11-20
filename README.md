@@ -48,7 +48,7 @@ Alertmanager → Watchdog heartbeat every 1 min → healthchecks.io → Discord 
 |---|---|---|
 | TargetDown | Prometheus can't scrape a target for 2 min | [target-down.md](docs/runbooks/target-down.md) |
 | Watchdog (dead man's switch) | healthchecks.io stops getting heartbeats | [watchdog-down.md](docs/runbooks/watchdog-down.md) |
-| ServiceDown | Any probed web app stops answering for 2 min — Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, Immich, BookStack warning; public URLs once live | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
+| ServiceDown | Any probed web app stops answering for 2 min — Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, Immich, BookStack warning; public URLs `jellyfin-public` critical, `seerr-public` warning | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
 | CertExpiringSoon | A TLS certificate expires in under 14 days | [caddy-down.md](docs/runbooks/caddy-down.md) |
 | MinecraftDown | The Minecraft server stops answering for 2 min | [minecraft-down.md](docs/runbooks/minecraft-down.md) |
 | DriveHot | A drive is above 50 °C for 10 min | [drive-hot.md](docs/runbooks/drive-hot.md) |

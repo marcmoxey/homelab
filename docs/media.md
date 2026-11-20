@@ -35,6 +35,10 @@ The apps run as UID/GID 1000 (mmoxey); Seerr does so by default, the others via 
 
 ## Public access (friends and family outside the house)
 
+**Live since 2026-11-20.** Verified from cellular: padlock on both sites, admin login refused,
+viewing account streams, real client IP in Jellyfin's Activity log; Apple TV (Swiftfin) works with
+Quick Connect. Caddy drill: FIRING 5:38 PM → RESOLVED 5:43 PM.
+
 Exactly two services are reachable from the internet, both through Caddy over HTTPS:
 
 | URL | Goes to | Used for |
@@ -93,7 +97,7 @@ friend → watch.marcshometheater.org
 |---|---|---|
 | Jellyfin | Blackbox `http://100.105.219.6:8096/health` → `ServiceDown` | critical |
 | Seerr, Sonarr, Radarr, Prowlarr, SABnzbd | Blackbox probes (`/api/v1/status`, `/ping`, `/`) → `ServiceDown` | warning |
-| Public path (DNS, router, Caddy, certs) | Blackbox `https://watch…/health` (`jellyfin-public`, critical), `https://request…/api/v1/status` (`seerr-public`, warning) — added once the ports are open | critical / warning |
+| Public path (DNS, router, Caddy, certs) | Blackbox `https://watch…/health` (`jellyfin-public`, critical), `https://request…/api/v1/status` (`seerr-public`, warning) | critical / warning |
 | Certificates | `CertExpiringSoon` (< 14 days) from the public probes | warning |
 | DDNS container | healthchecks.io ping (`HEALTHCHECKS` in `nas/ddns/.env`) | — |
 | Disk space | `DiskSpaceLow` (ext4 < 15%), `PoolSpaceLow` (tank < 7 TiB), `DiskWillFillIn24h` | warning / critical |
@@ -101,11 +105,39 @@ friend → watch.marcshometheater.org
 Runbooks: [media-down.md](runbooks/media-down.md), [caddy-down.md](runbooks/caddy-down.md),
 [disk-space-low.md](runbooks/disk-space-low.md). Per-service link files (`jellyfin-down.md`, …) point to these.
 
-**Monitoring:** Beelink blackbox probes `https://watch.marcshometheater.org/health`
-(`service: jellyfin-public`, critical) and `https://request.marcshometheater.org/api/v1/status`
-(`service: seerr-public`, warning). Runbook: [caddy-down.md](runbooks/caddy-down.md).
+The Beelink resolves the public names through Pi-hole, so the public probes test Caddy +
+certificates + apps but not the router forward or public DNS. **To check from outside:** phone on
+cellular (Wi-Fi off) → open both URLs; expect the login page and a padlock.
 
-**To check from outside:** phone on cellular (Wi-Fi off) → open both URLs; expect the login page and a padlock.
+## Adding a friend or family member
+
+Nobody can sign up; every account is created by hand. One Jellyfin account covers both sites.
+
+1. **Password:** Vaultwarden → Generator → Passphrase (4 words, `-`, capitalize, number). Save as a
+   login item `Jellyfin – <name>` in the **Jellyfin users** folder.
+2. **Jellyfin → Dashboard → Users → +**, then on the user:
+
+   | Setting | Value |
+   |---|---|
+   | Administrator | off |
+   | Allow remote connections | on |
+   | Allow media deletion / remote control of others | off |
+   | Library access | all, or only what they should see |
+   | Max parental rating | set for kids |
+   | Max active sessions | 2–3 (stops a login being passed around) |
+
+3. **Send the invite** by direct text (not a group chat): the two URLs, their username and password,
+   "install Jellyfin on the TV (Apple TV: **Swiftfin** or **Infuse**), server
+   `https://watch.marcshometheater.org`, sign in with **Quick Connect**". Quick Connect is approved
+   from a device that's already signed in, so they log in on their phone first.
+4. **Seerr:** their first sign-in at `request.` creates their Seerr account (or Users → Import
+   Jellyfin Users first). Family: Users → them → Permissions → **Auto-Approve**. Everyone else:
+   requests wait for approval, within the limits.
+
+**Removing someone:** Jellyfin → Users → them → disable (keeps watch history) or delete; their
+Seerr sign-in stops working at the same time. Delete their Vaultwarden item.
+
+**Forgotten password:** Jellyfin → Users → them → Password → set a new one; lockouts clear the same way.
 
 ## Folders (ZFS pool, tank/data mounted at /data)
 

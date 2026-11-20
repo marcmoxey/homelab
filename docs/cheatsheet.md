@@ -169,7 +169,7 @@ Pool `tank`: RAIDZ1 on 4× 18 TB, about 47 TiB usable. Survives one drive failin
 
 ## Networking and access
 
-Only Minecraft (25565, whitelisted) is port-forwarded. Everything else is LAN + Tailscale only; never forward 445 (Samba).
+Port-forwarded, and nothing else: **80/443 → Caddy** (`watch.` → Jellyfin, `request.` → Seerr) and **25565 → Minecraft** (whitelisted). Everything else is LAN + Tailscale only; never forward 445 (Samba) or any app port.
 
 | Command | What it does |
 | --- | --- |
@@ -181,6 +181,10 @@ Only Minecraft (25565, whitelisted) is port-forwarded. Everything else is LAN + 
 | `sudo ss -tlnp \| grep PORT` | What's listening on a port |
 | `curl -4 -s ifconfig.me` | Your current public IP |
 | `nslookup NAME 1.1.1.1` | What a DNS name points to (`NXDOMAIN` under an answer = no IPv6, ignore) |
+| `cd /opt/stacks/nas/media && docker compose logs -f caddy` | Caddy log (certificates, errors); Ctrl+C to stop watching |
+| `docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile` | Check the Caddyfile before restarting Caddy |
+| `curl -sI --resolve watch.marcshometheater.org:443:192.168.0.231 https://watch.marcshometheater.org/health` | Test Caddy + certificate + Jellyfin from inside, skipping DNS and the router |
+| `docker compose -f /opt/stacks/nas/ddns/compose.yml logs --tail=20` | DDNS: did the A records update? |
 | `ssh nas` / `ssh beelink` | Log in (SSH keys only) |
 | `scp file nas:/path/` | Copy a file to the NAS (needs an SSH key on the sending machine) |
 | `testparm -s` | Check the Samba config |
@@ -225,7 +229,9 @@ At home use `192.168.0.231` (NAS); away, turn on Tailscale and use `nas` or `100
 | Prowlarr | http://nas:9696 | `prowlarr:9696` | `nas/media` |
 | Sonarr | http://nas:8989 | `sonarr:8989` | `nas/media` |
 | Radarr | http://nas:7878 | `radarr:7878` | `nas/media` |
-| Jellyfin | http://nas:8096 | `jellyfin:8096` | `nas/media` |
+| Jellyfin | https://watch.marcshometheater.org (anywhere) or http://nas:8096 | `jellyfin:8096` | `nas/media` |
+| Seerr | https://request.marcshometheater.org (anywhere) or http://nas:5055 | `seerr:5055` | `nas/media` |
+| Bazarr / Clonarr / Jellystat | http://nas:6767 / :6060 / :3001 | — | `nas/media` |
 | Minecraft | Game address on port 25565 (public) | `prominence2:25565` | `nas/gameservers/minecraft` |
 | File share | `smb://nas/nasfileshare` | — | `/etc/samba/smb.conf` (copy in `nas/samba`) |
 | Prometheus | http://100.66.160.124:9090 | `prometheus:9090` | `monitoring` (Beelink) |
