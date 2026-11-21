@@ -50,6 +50,10 @@ scrape_configs:
     params:
       module: [http_2xx]
     static_configs:
+      - targets: ['http://100.105.219.6:8090/']
+        labels:
+          service: qbittorrent
+          severity: warning
       - targets: ["http://100.105.219.6:6875/login"]
         labels:
           service: bookstack
