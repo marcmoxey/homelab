@@ -1,0 +1,12 @@
+# Regenerated automatically: caches, logs
+/opt/appdata/media/jellyfin/cache
+/opt/appdata/media/jellyfin/transcodes
+/opt/appdata/media/jellyfin/log
+/opt/appdata/media/caddy/logs
+/opt/appdata/media/crowdsec/data
+*.log
+*.tmp
+logs.db*
+# Covered by dumps/archives in /tank/backups instead of live copies
+/tank/backups/minecraft
+/opt/appdata/minecraft
