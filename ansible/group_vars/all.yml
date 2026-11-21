@@ -10,6 +10,9 @@ base_packages: # shopping list of programs every computer gets
   - htop
   - ufw
   - unattended-upgrades
+  - sqlite3        # Vaultwarden backup script (safe .backup copy)
+  - restic         # off-site backups to B2
+  - tmux           # long-running jobs survive SSH drops
 
 ufw_rules_common: [] # SH now has its own task in the base role.
 ufw_rules_extra: [] # no extra firewall holes, unless a group’s own file

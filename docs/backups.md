@@ -69,4 +69,22 @@ Downloads are free up to 3× the stored size.
 
 | Date | What | Result |
 |---|---|---|
-| | | |
+| 2026-11-21 | Vaultwarden archive restored from B2 (snapshot `41a30433`) into `/tmp/restore` | ✅ Byte-identical to the local copy (`diff`), archive opens (`db.sqlite3`, key, attachments). 461 vault items |
+
+## Incident: Vaultwarden backups never ran (found by the first restore test)
+
+The first B2 restore test found **no `/tank/backups/vaultwarden` at all**. The backup script existed
+since 2026-11-19 but had never run, for three separate reasons, each enough on its own:
+
+| Cause | Fix |
+|---|---|
+| No line in root's crontab | Added `45 3 * * * … >> /var/log/vaultwarden-backup.log 2>&1` |
+| Script not executable (`Permission denied`, exit 126) | `chmod 755`, and `git update-index --chmod=+x` so a fresh clone keeps it |
+| `sqlite3` not installed on the host (exit 127) | `apt install sqlite3`; added to the Ansible base packages |
+
+**Why nothing alerted:** the healthchecks ping file was never created, and a healthchecks.io check
+that has **never received a ping stays grey ("new") and never alerts**.
+
+**Lessons:** a backup isn't real until it has been restored. After adding any scheduled job, run it
+once by hand, confirm its check turns green, and confirm the output exists. Every healthchecks.io
+check must be green; a grey one is a job that has never run.
