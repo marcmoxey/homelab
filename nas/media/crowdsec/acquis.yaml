@@ -1,0 +1,9 @@
+filenames:
+  - /var/log/caddy/*.log
+labels:
+  type: caddy
+---
+filenames:
+  - /var/log/jellyfin/log_*.log
+labels:
+  type: jellyfin

@@ -149,12 +149,18 @@ services:
     restart: unless-stopped
 
   caddy:
-    image: caddy:2.11.9
+    build: ./caddy
+    image: homelab/caddy-crowdsec:2.11.9
     container_name: caddy
+    environment:
+      - CROWDSEC_API_KEY=${CROWDSEC_CADDY_KEY}
+    depends_on:
+      - crowdsec
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - /opt/appdata/media/caddy/data:/data
       - /opt/appdata/media/caddy/config:/config
+      - /opt/appdata/media/caddy/logs:/var/log/caddy
     ports:
       - "192.168.0.231:80:80"
       - "192.168.0.231:443:443"
@@ -199,4 +205,19 @@ services:
     volumes:
       - /opt/appdata/media/qbittorrent:/config
       - /data:/data
+    restart: unless-stopped
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.8.2
+    container_name: crowdsec
+    environment:
+      - COLLECTIONS=crowdsecurity/caddy crowdsecurity/http-cve LePresidente/jellyfin
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/media/crowdsec/config:/etc/crowdsec
+      - /opt/appdata/media/crowdsec/data:/var/lib/crowdsec/data
+      - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - ./crowdsec/whitelist.yaml:/etc/crowdsec/parsers/s02-enrich/home-whitelist.yaml:ro
+      - /opt/appdata/media/caddy/logs:/var/log/caddy:ro
+      - /opt/appdata/media/jellyfin/log:/var/log/jellyfin:ro
     restart: unless-stopped

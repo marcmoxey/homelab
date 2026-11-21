@@ -1,0 +1,7 @@
+name: marc/home-whitelist
+description: "Never ban the home LAN or Tailscale"
+whitelist:
+  reason: "home LAN + Tailscale"
+  cidr:
+    - "192.168.0.0/24"
+    - "100.64.0.0/10"
