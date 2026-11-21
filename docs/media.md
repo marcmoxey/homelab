@@ -30,7 +30,8 @@ mappings are needed anywhere**.
 | Clonarr | http://nas:6060 | `clonarr:6060` | `/opt/appdata/media/clonarr` | none |
 | Jellystat | http://nas:3001 | `jellystat:3000` | `/opt/appdata/media/jellystat` | none |
 | Jellystat DB | — | `jellystat-db:5432` | `/opt/appdata/media/jellystat/db` | none |
-| Caddy | — (public: 80/443) | `caddy` | `/opt/appdata/media/caddy/{data,config}` + `nas/media/caddy/Caddyfile` | none |
+| Caddy (custom build + CrowdSec bouncer) | — (public: 80/443) | `caddy` | `/opt/appdata/media/caddy/{data,config,logs}` + `nas/media/caddy/{Caddyfile,Dockerfile}` | none |
+| CrowdSec | — (no ports) | `crowdsec:8080` (bouncer API) | `/opt/appdata/media/crowdsec/{config,data}` + `nas/media/crowdsec/{acquis,whitelist}.yaml` | reads Caddy + Jellyfin logs (read-only) |
 | cloudflare-ddns | — (no ports) | — | none (`nas/ddns/.env` holds the token) | separate stack: `nas/ddns` |
 
 All browser ports are bound to `192.168.0.231` and `100.105.219.6` only (Docker bypasses UFW).
@@ -93,7 +94,41 @@ friend → watch.marcshometheater.org
 | Seerr logins | Jellyfin sign-in only (**local sign-in off**), so Jellyfin's lockout protects Seerr too; new Jellyfin users can sign in without import |
 | Seerr permissions | Default: Request + View Recently Added + Report Issues; auto-approve per family member; limits 10 movies / 5 series per 7 days |
 | Patching | Jellyfin, Seerr and Caddy updated within ~a week of releases (pinned tags, changed deliberately) |
-| Next layer (planned) | CrowdSec reading Jellyfin/Caddy logs to ban repeated failed logins |
+| Intrusion prevention | **CrowdSec** (below): bans scanners and brute-force IPs at Caddy, before they reach Jellyfin or Seerr |
+
+## CrowdSec (intrusion prevention)
+
+```
+visitor → Caddy ── bouncer asks CrowdSec "is this IP banned?" (refreshed every 15 s) → 403 if yes
+                └→ jellyfin / seerr
+CrowdSec engine ← reads Caddy JSON access logs + Jellyfin log_*.log ← + community blocklist
+```
+
+| Piece | Where |
+|---|---|
+| Engine | `crowdsec` container (`crowdsecurity/crowdsec:v1.8.2`), no published ports |
+| Detection packs | `crowdsecurity/caddy` (+ base HTTP scenarios), `crowdsecurity/http-cve`, `LePresidente/jellyfin` (failed logins) |
+| What it reads | `nas/media/crowdsec/acquis.yaml`: `/var/log/caddy/*.log` (type caddy), `/var/log/jellyfin/log_*.log` (type jellyfin) |
+| Never banned | `nas/media/crowdsec/whitelist.yaml`: `192.168.0.0/24` (home) and `100.64.0.0/10` (Tailscale) |
+| Bouncer | Caddy built with `github.com/hslatman/caddy-crowdsec-bouncer/http` (`nas/media/caddy/Dockerfile`), `route { crowdsec … }` in each site |
+| Key | `CROWDSEC_CADDY_KEY` in `nas/media/.env` + Vaultwarden (`cscli bouncers add caddy-bouncer` shows it once) |
+| Caddy logs | JSON, `/opt/appdata/media/caddy/logs/access.log`, rotated at 50 MiB × 5 |
+
+Caddy **refuses to start** if `CROWDSEC_CADDY_KEY` is empty ("crowdsec API key must not be empty"). A
+"variable is not set" warning from `docker compose` is an error here; fix `.env` before `up -d`.
+
+Devices at home must use Pi-hole, so they reach Caddy from `192.168.0.x` (whitelisted). A device that
+resolves the public IP shows up as the **home public IP**, which is *not* whitelisted.
+
+```bash
+docker exec crowdsec cscli decisions list                    # who is banned right now
+docker exec crowdsec cscli alerts list                       # what was detected
+docker exec crowdsec cscli decisions delete --ip 1.2.3.4     # unban
+docker exec crowdsec cscli bouncers list                     # caddy-bouncer must show a recent pull
+docker exec crowdsec cscli metrics show acquisition          # are both logs being read?
+```
+
+Verified 2026-11-21: a test ban on a phone's cellular IP returned 403 at Caddy; unban restored access.
 
 ## Monitoring
 
@@ -103,6 +138,7 @@ friend → watch.marcshometheater.org
 | Seerr, Sonarr, Radarr, Prowlarr, SABnzbd | Blackbox probes (`/api/v1/status`, `/ping`, `/`) → `ServiceDown` | warning |
 | Public path (DNS, router, Caddy, certs) | Blackbox `https://watch…/health` (`jellyfin-public`, critical), `https://request…/api/v1/status` (`seerr-public`, warning) | critical / warning |
 | Certificates | `CertExpiringSoon` (< 14 days) from the public probes | warning |
+| Public path from outside | **UptimeRobot** (free): `jellyfin-public` (`/health`), `seerr-public` (keyword `version` must exist), every 5 min, email + app push | — |
 | DDNS container | healthchecks.io ping (`HEALTHCHECKS` in `nas/ddns/.env`) | — |
 | Disk space | `DiskSpaceLow` (ext4 < 15%), `PoolSpaceLow` (tank < 7 TiB), `DiskWillFillIn24h` | warning / critical |
 

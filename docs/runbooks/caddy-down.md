@@ -70,6 +70,8 @@ sudo ss -tlnp | grep -E ':(80|443) '                          # Caddy listening?
 | What you see | Usually means |
 |---|---|
 | `caddy` not running / restarting | Bad Caddyfile or container crashed — logs show the line |
+| Logs: `crowdsec API key must not be empty` | `CROWDSEC_CADDY_KEY` missing from `nas/media/.env` (compose warned "variable is not set") |
+| Some visitors get `403`, others fine | CrowdSec banned their IP: `docker exec crowdsec cscli decisions list` |
 | Caddy logs: `obtaining certificate` errors, `timeout`, `connection refused` | Let's Encrypt can't reach you: port forward missing, ISP blocking, or DNS wrong |
 | DNS IP ≠ current public IP | DDNS container stopped, or its logs show an auth error (token rolled/expired/deleted) |
 | Public DNS NXDOMAIN for `watch` | A record deleted, container never ran, or domain expired (check auto-renew) |
@@ -82,6 +84,8 @@ sudo ss -tlnp | grep -E ':(80|443) '                          # Caddy listening?
 | Cause | Fix |
 |---|---|
 | Caddy stopped | `docker compose up -d caddy` |
+| CrowdSec key missing | `docker exec crowdsec cscli bouncers delete caddy-bouncer && docker exec crowdsec cscli bouncers add caddy-bouncer`; put the key in `.env` (`CROWDSEC_CADDY_KEY=`), `docker compose up -d caddy`. **Fast rollback:** comment out the `crowdsec {…}` block and the two `crowdsec` lines in the Caddyfile, `up -d caddy` |
+| Someone wrongly banned | `docker exec crowdsec cscli decisions delete --ip <ip>`; if it's a regular, add their range to `crowdsec/whitelist.yaml` |
 | Caddyfile error | Fix `nas/media/caddy/Caddyfile`, check with `docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile`, then `docker compose restart caddy` |
 | Port forward missing | Router → NAT Forwarding → Virtual Servers: 80 TCP, 443 TCP+UDP → `192.168.0.231` |
 | NAS IP changed | Set a DHCP reservation for the NAS at `192.168.0.231` in the router, update the forwards |
@@ -114,4 +118,5 @@ breaks their terms; forward any other port to "test"; delete `/opt/appdata/media
 
 | Date | What happened | Detect | Down for | Postmortem |
 |---|---|---|---|---|
+| 2026-11-21 | **Real outage:** Caddy recreated with the CrowdSec bouncer while `CROWDSEC_CADDY_KEY` was missing from `.env`; Caddy refused to load its config (crash loop) | Found in `docker compose logs caddy` while checking the change | ~6 min (11:33 → 11:39 AM) | — (follow-up: treat compose "variable is not set" as an error) |
 | 2026-11-20 | Drill: stopped Caddy right after go-live; both public probes (jellyfin-public critical, seerr-public warning) fired together as one grouped alert | FIRING 5:38 PM | ~5 min (RESOLVED 5:43 PM) | — |

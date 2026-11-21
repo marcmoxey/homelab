@@ -16,7 +16,8 @@ Every one of these comes from a real mistake in this homelab.
 8. **Test a whitelist name with `rcon whitelist add` before putting it in `.env`.** A bad name in `.env` crash-loops the server.
 9. **Edit `sabnzbd.ini` only while SABnzbd is stopped,** or it overwrites your change.
 10. **Restart gluetun and qBittorrent together** (`docker compose restart gluetun qbittorrent`), and run the leak test after any VPN change (`docs/media.md` → Torrents).
-10. **`cat >` replaces a file; `cat >>` appends to it.**
+11. **`cat >` replaces a file; `cat >>` appends to it.**
+12. **A "variable is not set" warning before `up -d` is an error.** An empty key in `.env` took Caddy (public access) down for 6 min on 2026-11-21.
 
 ## Where things live
 
@@ -186,6 +187,9 @@ Port-forwarded, and nothing else: **80/443 → Caddy** (`watch.` → Jellyfin, `
 | `docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile` | Check the Caddyfile before restarting Caddy |
 | `curl -sI --resolve watch.marcshometheater.org:443:192.168.0.231 https://watch.marcshometheater.org/health` | Test Caddy + certificate + Jellyfin from inside, skipping DNS and the router |
 | `docker compose -f /opt/stacks/nas/ddns/compose.yml logs --tail=20` | DDNS: did the A records update? |
+| `docker exec crowdsec cscli decisions list` | IPs CrowdSec has banned right now |
+| `docker exec crowdsec cscli decisions delete --ip IP` | Unban an IP |
+| `docker exec crowdsec cscli bouncers list` | Caddy bouncer connected? (recent "Last API pull") |
 | `ssh nas` / `ssh beelink` | Log in (SSH keys only) |
 | `scp file nas:/path/` | Copy a file to the NAS (needs an SSH key on the sending machine) |
 | `testparm -s` | Check the Samba config |
@@ -197,7 +201,7 @@ Port-forwarded, and nothing else: **80/443 → Caddy** (`watch.` → Jellyfin, `
 
 ## Backups and cron
 
-Every backup pings healthchecks.io on success, so a missed run alerts. All live on the pool; nothing is off-site until restic → B2.
+Every backup pings healthchecks.io on success, so a missed run alerts. They land on the pool, then **restic copies everything irreplaceable to Backblaze B2 at 5:00** (details: `docs/backups.md`).
 
 | Backup | Run it now | Schedule | Goes to | Keeps |
 | --- | --- | --- | --- | --- |
@@ -205,11 +209,15 @@ Every backup pings healthchecks.io on success, so a missed run alerts. All live 
 | BookStack | `nas/bookstack/backup.sh` | Daily 3:15 | `/tank/backups/bookstack/` | 7 |
 | Vaultwarden | `sudo nas/vaultwarden/backup.sh` (root cron) | Daily 3:45 | `/tank/backups/vaultwarden/` | 30 |
 | Immich database | Built in (Administration → Settings → Backup) | Daily | `/tank/photos/backups/` | Set in Immich |
+| **Off-site (restic → B2)** | `sudo nas/restic/backup.sh` (root cron) | Daily 5:00 | Backblaze B2, encrypted | 7 daily, 4 weekly, 6 monthly |
 
 | Command | What it does |
 | --- | --- |
 | `crontab -l` / `crontab -e` | Your scheduled jobs: list / edit |
-| `sudo crontab -l` | Root's scheduled jobs (Vaultwarden backup) |
+| `sudo crontab -l` | Root's scheduled jobs (Vaultwarden backup, restic) |
+| `sudo bash -c 'source /root/.restic.env && restic snapshots'` | Off-site snapshots in B2 |
+| `sudo bash -c 'source /root/.restic.env && restic stats --mode raw-data'` | How much is stored in B2 |
+| `sudo tail -20 /var/log/restic-backup.log` | Last off-site run (`=== … ok` at the end) |
 | `ls -1t /tank/backups/bookstack/ \| head` | Newest backups first |
 | `tail -20 /home/mmoxey/bookstack-backup.log` | Recent results (also `mc-backup.log`; root's in `/var/log/vaultwarden-backup.log`) |
 
@@ -241,3 +249,17 @@ At home use `192.168.0.231` (NAS); away, turn on Tailscale and use `nas` or `100
 | Alertmanager | http://100.66.160.124:9093 | — | `monitoring` (Beelink) |
 
 Sonarr, Radarr and Jellyfin are listed with their planned ports; they aren't running yet. Prometheus, Grafana and Alertmanager ports are their defaults; change them here if yours differ.
+
+## Terraform (B2)
+
+Run from `/opt/stacks/terraform/b2` on the NAS. Needs the **B2 master key** (Vaultwarden), only for plan/apply.
+
+```bash
+alias tf='docker run --rm -it -u "$(id -u):$(id -g)" -e HOME=/tmp -e B2_APPLICATION_KEY_ID -e B2_APPLICATION_KEY -v "$PWD":/work -w /work hashicorp/terraform:1.17.2'
+export B2_APPLICATION_KEY_ID='<master keyID>'
+read -rsp 'Master applicationKey: ' B2_APPLICATION_KEY; echo; export B2_APPLICATION_KEY
+tf plan -out=b2.tfplan && tf apply b2.tfplan && rm b2.tfplan
+unset B2_APPLICATION_KEY B2_APPLICATION_KEY_ID
+```
+
+`terraform.tfstate` contains the restic key: never commit it (copy attached in Vaultwarden).

@@ -11,6 +11,8 @@ A two-machine homelab run like a small production environment: everything is def
 | **NAS** — Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | **Media:** Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, qBittorrent (VPN-only via gluetun), Bazarr, Clonarr, Jellystat, Caddy ([docs/media.md](docs/media.md)) · **Apps:** Vaultwarden, Immich, BookStack · **Games:** modded Minecraft + mc-monitor · **Infra:** Samba, Cloudflare DDNS, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
 | **Beelink SER Pro** — Ubuntu 26.04 | Watches everything | Prometheus, Grafana, Alertmanager, blackbox exporter, ntfy (push to phone), node_exporter, NUT client |
 | **healthchecks.io** | Watches the watcher | Dead man's switch for the alerting chain, backup checks, DDNS heartbeat |
+| **UptimeRobot** | Watches from outside | Checks the public sites every 5 min from the internet, the path family actually uses (DNS → ISP → router → Caddy) |
+| **Backblaze B2** | Off-site copy | Encrypted restic backups, bucket and key managed with Terraform |
 
 The two machines talk over **Tailscale**. Internal services are bound to the LAN and Tailscale addresses only (Docker-published ports bypass UFW, so nothing internal listens on `0.0.0.0`).
 
@@ -18,7 +20,7 @@ The two machines talk over **Tailscale**. Internal services are bound to the LAN
 
 | Port | Goes to | Why |
 |---|---|---|
-| 443 / 80 | Caddy → Jellyfin (`watch.<your-domain>`) and Seerr (`request.<your-domain>`) | Family on smart TVs; automatic HTTPS, admin login blocked from outside, per-user lockouts |
+| 443 / 80 | Caddy → Jellyfin (`watch.<your-domain>`) and Seerr (`request.<your-domain>`) | Family on smart TVs; automatic HTTPS, admin login blocked from outside, per-user lockouts, **CrowdSec** bans scanners and brute-force IPs before they reach the apps |
 | 25565 | Minecraft | Whitelisted game server |
 
 Vaultwarden is reachable only through `tailscale serve` (HTTPS, tailnet only); everything else is LAN + Tailscale.
@@ -34,7 +36,7 @@ Vaultwarden is reachable only through `tailscale serve` (HTTPS, tailnet only); e
 | `tank/backups` | `/tank/backups` | Backups: Minecraft worlds, BookStack, Vaultwarden |
 | NVMe (1 TB) | `/opt/appdata` | Live app data and databases (fast tier) |
 
-RAIDZ1 survives any one drive failing. lz4 compression and `atime=off` on everything, ZFS ARC capped at 16 GiB, monthly scrubs. Databases live on the NVMe; their backups go to the pool, so each copy is on different hardware. Off-site backup (restic → Backblaze B2) is next.
+RAIDZ1 survives any one drive failing. lz4 compression and `atime=off` on everything, ZFS ARC capped at 16 GiB, monthly scrubs. Databases live on the NVMe; their backups go to the pool, so each copy is on different hardware. Everything irreplaceable is also backed up **off-site every night** with restic to Backblaze B2 (encrypted before it leaves the NAS; see [docs/backups.md](docs/backups.md)).
 
 ## How a problem reaches my phone
 
@@ -74,11 +76,15 @@ Grafana dashboards are saved as JSON in `monitoring/grafana/dashboards/`.
 
 ```
 ansible/          Host provisioning (roles: base, docker, tailscale; UFW rules in group_vars)
+terraform/
+  b2/             Backblaze B2 bucket + bucket-scoped restic key (state kept out of Git)
 monitoring/       Beelink stack: Prometheus, Grafana, Alertmanager, blackbox, ntfy
   prometheus/rules/   Alert rules
   grafana/dashboards/ Dashboard JSON
 nas/
-  media/          Jellyfin, Seerr, *arr apps, SABnzbd, qBittorrent + gluetun (VPN), Bazarr, Clonarr, Jellystat, Caddy (+ Caddyfile)
+  media/          Jellyfin, Seerr, *arr apps, SABnzbd, qBittorrent + gluetun (VPN), Bazarr, Clonarr, Jellystat,
+                  Caddy (custom build with CrowdSec bouncer + Caddyfile), CrowdSec (acquis + whitelist)
+  restic/         Nightly off-site backup script + excludes
   ddns/           Cloudflare DDNS (scoped API token, locked-down container)
   vaultwarden/    Password manager + backup script
   immich/         Photos (official compose + .env.example)
@@ -88,7 +94,8 @@ nas/
   exporters/      node_exporter, smartctl-exporter, cAdvisor
   nut/            UPS config (passwords in *.example only)
 docs/
-  media.md        Media stack, public access, hardening
+  media.md        Media stack, public access, hardening, CrowdSec
+  backups.md      What is backed up where, off-site restic/B2, restore steps
   cheatsheet.md   Everyday commands
   runbooks/       What to do when each alert fires
   postmortems/    Blameless write-ups of every outage and drill
@@ -106,7 +113,9 @@ The same repo is cloned to `/opt/stacks` on both machines; each one runs only it
 - **Black-box monitoring:** a blackbox exporter loads each app the way a user would, so "container up, app broken" still alerts.
 - **Drills:** alerts are tested by breaking things on purpose. A drill isn't finished until the *Resolved* notification arrives.
 - **Planned maintenance under a silence:** Alertmanager silences scoped to the host being worked on, expired when it's back.
-- **Backups with restore tests:** Minecraft hourly + nightly, BookStack and Vaultwarden nightly, Immich database dumps — each restore-tested into a throwaway container; missed backups alert via healthchecks.io.
+- **Backups with restore tests (3-2-1):** Minecraft hourly + nightly, BookStack and Vaultwarden nightly, Immich database dumps — each restore-tested into a throwaway container — then **everything irreplaceable copied off-site nightly** (restic → B2, encrypted, 7 daily / 4 weekly / 6 monthly, weekly integrity check). Missed or failed backups alert via healthchecks.io.
+- **Inside and outside monitoring:** Prometheus probes from the Beelink, plus UptimeRobot checking the public URLs from the internet, so a broken router forward or ISP problem still alerts.
+- **Intrusion prevention:** CrowdSec reads Caddy and Jellyfin logs and bans scanners and brute-force IPs at the proxy; home and Tailscale ranges are whitelisted.
 - **Burn-in before trust:** drives got SMART short tests, a 48-hour destructive `badblocks` pass and SMART long tests; RAM got 4 passes of MemTest86 — all with zero errors before any data was stored.
 - **Power protection:** a CyberPower UPS shared via NUT so both machines can shut down cleanly.
 - **Secrets stay out of Git:** `.env` files, tokens and ping URLs are git-ignored; `*.example` files show the format.
