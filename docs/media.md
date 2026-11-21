@@ -3,8 +3,10 @@
 Request → download → organize → watch, all on the NAS, reachable only from the home LAN and Tailscale.
 
 ```
-Seerr (request) → Radarr / Sonarr → Prowlarr (indexers) → SABnzbd (Usenet)
-   → /data/usenet/complete/{movies,tv} → hardlinked into /data/media/{movies,tv,anime}
+Seerr (request) → Radarr / Sonarr → Prowlarr (indexers) → SABnzbd (Usenet, preferred)
+                                                         → qBittorrent via gluetun VPN (torrents, fallback)
+   → /data/usenet/complete/{movies,tv} or /data/torrents/{movies,tv}
+   → hardlinked into /data/media/{movies,tv,anime}
    → Jellyfin (watch)   + Bazarr (subtitles)   + Clonarr (TRaSH profiles)   + Jellystat (stats)
 ```
 
@@ -17,6 +19,8 @@ mappings are needed anywhere**.
 | App | Browser | From other containers | Config (NVMe) | Data mount |
 |---|---|---|---|---|
 | SABnzbd | http://nas:8085 | `sabnzbd:8080` | `/opt/appdata/media/sabnzbd` | `/data/usenet` |
+| gluetun (VPN) | — (publishes qBittorrent's 8090) | `gluetun` | `/opt/appdata/media/gluetun` | none |
+| qBittorrent | http://nas:8090 | **`gluetun:8090`** (shares gluetun's network) | `/opt/appdata/media/qbittorrent` | `/data` |
 | Prowlarr | http://nas:9696 | `prowlarr:9696` | `/opt/appdata/media/prowlarr` | none |
 | Radarr | http://nas:7878 | `radarr:7878` | `/opt/appdata/media/radarr` | `/data` |
 | Sonarr | http://nas:8989 | `sonarr:8989` | `/opt/appdata/media/sonarr` | `/data` |
@@ -161,6 +165,35 @@ Auto-sync is **off**; review TRaSH updates in Clonarr → History, dry-run, then
 Change scores in Clonarr, not in Radarr/Sonarr (Clonarr overwrites them on sync).
 Never run Recyclarr alongside Clonarr.
 
+## Torrents (qBittorrent behind a VPN)
+
+Usenet is preferred; torrents (Nyaa.si for anime) are the fallback. qBittorrent has **no route to
+the internet except the VPN**: it runs with `network_mode: service:gluetun`, so if ProtonVPN drops,
+it has no network at all (kill switch). Public trackers see Proton's IP, never the home IP.
+
+| Piece | Setting |
+|---|---|
+| VPN | ProtonVPN Plus, WireGuard, P2P servers only (`PORT_FORWARD_ONLY=on`), US. Key: `PROTON_WG_PRIVATE_KEY` in `nas/media/.env` (made at account.protonvpn.com → Downloads → WireGuard, **NAT-PMP on**) |
+| Port forwarding | Proton assigns a port on each connect; gluetun's `VPN_PORT_FORWARDING_UP_COMMAND` pushes it into qBittorrent (needs qBittorrent "Bypass authentication for clients on localhost") |
+| Second kill switch | qBittorrent → Advanced → Network interface `tun0` |
+| Folders | Default save path `/data/torrents`; categories `movies` → `/data/torrents/movies`, `tv` → `/data/torrents/tv` (anime uses `tv`; Sonarr's root folder puts it in `/data/media/anime`) |
+| Seeding | Ratio 1.0 → pause; Sonarr/Radarr "Remove Completed" cleans up |
+| Sonarr / Radarr | Download client qBittorrent: host **`gluetun`**, port `8090`, category `tv` / `movies`. Delay profile: Preferred Protocol **Usenet** |
+
+**Restart rule:** if gluetun restarts, qBittorrent loses its network. Restart them together:
+`docker compose restart gluetun qbittorrent` (gluetun retries the port push until qBittorrent is up).
+
+**Leak test (after any VPN change)**
+```bash
+curl -4 -s ifconfig.me; echo                          # home IP
+docker exec qbittorrent curl -s ifconfig.me; echo     # must be different (Proton)
+docker compose stop gluetun
+docker exec qbittorrent curl -m 5 -s ifconfig.me || echo "BLOCKED - kill switch works"
+docker compose restart gluetun qbittorrent
+docker compose logs --since 2m gluetun | grep -E "port forwarded|awaiting response"   # port + 200
+```
+Verified 2026-11-21: Proton IP shown, kill switch blocked, port pushed (200).
+
 ## Settings that live outside Git (set in each app's UI)
 
 **SABnzbd** (`sabnzbd.ini`, edit only while the container is stopped):
@@ -190,6 +223,9 @@ auto-approve for family, request limits for everyone.
 English language profile as default for series and movies; providers OpenSubtitles.com +
 1–2 free ones; Jellyfin media server with refresh after subtitle download.
 
+**qBittorrent:** Web UI login (Vaultwarden), localhost bypass on, ban after 5 failures, UPnP off,
+Automatic torrent management, save path and categories above, network interface `tun0`, ratio 1.0.
+
 **Clonarr:** Radarr and Sonarr instances by container name + API keys.
 
 **Jellystat:** connected to `http://jellyfin:8096` with its own API key.
@@ -197,13 +233,17 @@ English language profile as default for series and movies; providers OpenSubtitl
 ## Secrets (Vaultwarden + `nas/media/.env`, never in Git)
 
 Usenet provider login, indexer API keys, every app's login and API key,
-`JELLYSTAT_DB_PASSWORD`, `JELLYSTAT_JWT_SECRET`. `.env.example` shows the format.
+`JELLYSTAT_DB_PASSWORD`, `JELLYSTAT_JWT_SECRET`, `PROTON_WG_PRIVATE_KEY` (anyone with it can use
+the VPN account: if leaked, delete it in Proton and make a new one). `.env.example` shows the format.
 
 ## Common fixes
 
 | Symptom | Fix |
 |---|---|
 | SABnzbd 403 / "API key incorrect" from an app | Check `local_ranges`, `host_whitelist`, and that the app has the current API key (the log shows the caller's IP and user agent) |
+| qBittorrent "not reachable" / no peers | Port not pushed: `docker compose logs gluetun \| grep -E "port forwarded\|awaiting"` should end in `200`; 403 = localhost bypass off; then `docker compose restart gluetun qbittorrent` |
+| Sonarr/Radarr can't reach qBittorrent | Host must be `gluetun`, not `qbittorrent`; check the login |
+| gluetun unhealthy / restarting | `docker compose logs --tail=40 gluetun`; key missing from `.env` ("variable is not set") or Proton outage |
 | Download never imports | Radarr/Sonarr → Activity → Queue shows the reason (usually paths or permissions) |
 | Hardlink check | `ls -li` on the download and the library file: same inode number = hardlink |
 | New subtitle not in player | Bazarr → Jellyfin integration on; or refresh the item in Jellyfin |

@@ -8,7 +8,7 @@ A two-machine homelab run like a small production environment: everything is def
 
 | Machine | Role | Runs |
 |---|---|---|
-| **NAS** — Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | **Media:** Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, Bazarr, Clonarr, Jellystat, Caddy ([docs/media.md](docs/media.md)) · **Apps:** Vaultwarden, Immich, BookStack · **Games:** modded Minecraft + mc-monitor · **Infra:** Samba, Cloudflare DDNS, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
+| **NAS** — Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | **Media:** Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, qBittorrent (VPN-only via gluetun), Bazarr, Clonarr, Jellystat, Caddy ([docs/media.md](docs/media.md)) · **Apps:** Vaultwarden, Immich, BookStack · **Games:** modded Minecraft + mc-monitor · **Infra:** Samba, Cloudflare DDNS, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
 | **Beelink SER Pro** — Ubuntu 26.04 | Watches everything | Prometheus, Grafana, Alertmanager, blackbox exporter, ntfy (push to phone), node_exporter, NUT client |
 | **healthchecks.io** | Watches the watcher | Dead man's switch for the alerting chain, backup checks, DDNS heartbeat |
 
@@ -48,7 +48,7 @@ Alertmanager → Watchdog heartbeat every 1 min → healthchecks.io → Discord 
 |---|---|---|
 | TargetDown | Prometheus can't scrape a target for 2 min | [target-down.md](docs/runbooks/target-down.md) |
 | Watchdog (dead man's switch) | healthchecks.io stops getting heartbeats | [watchdog-down.md](docs/runbooks/watchdog-down.md) |
-| ServiceDown | Any probed web app stops answering for 2 min — Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, Immich, BookStack warning; public URLs `jellyfin-public` critical, `seerr-public` warning | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
+| ServiceDown | Any probed web app stops answering for 2 min — Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, qBittorrent, Immich, BookStack warning; public URLs `jellyfin-public` critical, `seerr-public` warning | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
 | CertExpiringSoon | A TLS certificate expires in under 14 days | [caddy-down.md](docs/runbooks/caddy-down.md) |
 | MinecraftDown | The Minecraft server stops answering for 2 min | [minecraft-down.md](docs/runbooks/minecraft-down.md) |
 | DriveHot | A drive is above 50 °C for 10 min | [drive-hot.md](docs/runbooks/drive-hot.md) |
@@ -78,7 +78,7 @@ monitoring/       Beelink stack: Prometheus, Grafana, Alertmanager, blackbox, nt
   prometheus/rules/   Alert rules
   grafana/dashboards/ Dashboard JSON
 nas/
-  media/          Jellyfin, Seerr, *arr apps, SABnzbd, Bazarr, Clonarr, Jellystat, Caddy (+ Caddyfile)
+  media/          Jellyfin, Seerr, *arr apps, SABnzbd, qBittorrent + gluetun (VPN), Bazarr, Clonarr, Jellystat, Caddy (+ Caddyfile)
   ddns/           Cloudflare DDNS (scoped API token, locked-down container)
   vaultwarden/    Password manager + backup script
   immich/         Photos (official compose + .env.example)
@@ -101,6 +101,7 @@ The same repo is cloned to `/opt/stacks` on both machines; each one runs only it
 - **Infrastructure as code:** Docker Compose for every service, Ansible for the hosts. A second Ansible run reports `changed=0`.
 - **Pinned versions:** images and the Minecraft modpack are pinned; upgrades are a deliberate one-line change.
 - **Validate before restart:** `docker compose config -q`, `promtool check config` and `amtool check-config` before any restart.
+- **Kill-switched torrents:** qBittorrent shares the VPN container's network, so it can't reach the internet if the VPN drops (tested).
 - **Least exposure:** only Caddy (443/80) and Minecraft are internet-facing; every internal port is bound to LAN/Tailscale addresses; the Jellyfin admin account can't log in from the internet.
 - **Black-box monitoring:** a blackbox exporter loads each app the way a user would, so "container up, app broken" still alerts.
 - **Drills:** alerts are tested by breaking things on purpose. A drill isn't finished until the *Resolved* notification arrives.

@@ -15,6 +15,7 @@ Every one of these comes from a real mistake in this homelab.
 7. **Bind container ports to specific IPs** (`192.168.0.231`, `100.105.219.6`, or `127.0.0.1`). Docker-published ports bypass UFW.
 8. **Test a whitelist name with `rcon whitelist add` before putting it in `.env`.** A bad name in `.env` crash-loops the server.
 9. **Edit `sabnzbd.ini` only while SABnzbd is stopped,** or it overwrites your change.
+10. **Restart gluetun and qBittorrent together** (`docker compose restart gluetun qbittorrent`), and run the leak test after any VPN change (`docs/media.md` → Torrents).
 10. **`cat >` replaces a file; `cat >>` appends to it.**
 
 ## Where things live
@@ -226,6 +227,7 @@ At home use `192.168.0.231` (NAS); away, turn on Tailscale and use `nas` or `100
 | Immich | http://nas:2283 | — | `nas/immich` |
 | BookStack | http://nas:6875 | — | `nas/bookstack` |
 | SABnzbd | http://nas:8085 | `sabnzbd:8080` | `nas/media` |
+| qBittorrent (via VPN) | http://nas:8090 | `gluetun:8090` | `nas/media` |
 | Prowlarr | http://nas:9696 | `prowlarr:9696` | `nas/media` |
 | Sonarr | http://nas:8989 | `sonarr:8989` | `nas/media` |
 | Radarr | http://nas:7878 | `radarr:7878` | `nas/media` |

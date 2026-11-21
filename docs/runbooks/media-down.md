@@ -1,8 +1,8 @@
-# Runbook: Media app down (Jellyfin, Seerr, *arr, SABnzbd, Bazarr, Clonarr, Jellystat)
+# Runbook: Media app down (Jellyfin, Seerr, *arr, SABnzbd, qBittorrent, Bazarr, Clonarr, Jellystat)
 
 | | |
 |---|---|
-| **Alert** | `ServiceDown{service="<app>"}` — jellyfin, seerr, sonarr, radarr, prowlarr, sabnzbd, bazarr, clonarr, jellystat |
+| **Alert** | `ServiceDown{service="<app>"}` — jellyfin, seerr, sonarr, radarr, prowlarr, sabnzbd, qbittorrent, bazarr, clonarr, jellystat |
 | **Rule** | `probe_success == 0` for 2m — `monitoring/prometheus/rules/alerts.yml` |
 | **Fires when** | The Beelink can't load that app's health page on `100.105.219.6:<port>` for 2 minutes |
 | **Impact** | Depends on the app (table below). Nothing is lost while it's down: media is on the pool, settings on the NVMe |
@@ -19,6 +19,7 @@
 | sonarr / radarr | `sonarr` / `radarr` | `:8989/ping` / `:7878/ping` | New TV / movies stop downloading and importing |
 | prowlarr | `prowlarr` | `:9696/ping` | Searches return nothing (Sonarr/Radarr have no indexers) |
 | sabnzbd | `sabnzbd` | `:8085` | Downloads stop; queue resumes when it's back |
+| qbittorrent | `qbittorrent` + `gluetun` | `:8090` | Torrent downloads stop (Usenet unaffected). If gluetun is down, qBittorrent has no network by design: `docker compose restart gluetun qbittorrent` |
 | bazarr | `bazarr` | `:6767` | No new subtitles |
 | clonarr | `clonarr` | `:6060` | No profile syncs (no immediate effect) |
 | jellystat | `jellystat` | `:3001` | Stats only |
