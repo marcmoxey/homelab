@@ -32,3 +32,11 @@ request.marcshometheater.org {
 		reverse_proxy seerr:5055
 	}
 }
+
+music.marcshometheater.org {
+	import logging
+	route {
+		crowdsec
+		reverse_proxy navidrome:4533
+	}
+}

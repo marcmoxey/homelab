@@ -191,7 +191,7 @@ services:
     restart: unless-stopped
 
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:5.3.0_v2.1.2-ls487   # pin after first pull
+    image: lscr.io/linuxserver/qbittorrent:5.3.0_v2.1.2-ls487
     container_name: qbittorrent
     network_mode: service:gluetun
     depends_on:
@@ -220,4 +220,21 @@ services:
       - ./crowdsec/whitelist.yaml:/etc/crowdsec/parsers/s02-enrich/home-whitelist.yaml:ro
       - /opt/appdata/media/caddy/logs:/var/log/caddy:ro
       - /opt/appdata/media/jellyfin/log:/var/log/jellyfin:ro
+    restart: unless-stopped
+
+
+  navidrome:
+    image: deluan/navidrome:0.64.2
+    container_name: navidrome
+    user: 1000:1000
+    environment:
+      - ND_SCANSCHEDULE=1h
+      - ND_LOGLEVEL=info
+      - ND_ENABLEINSIGHTSCOLLECTOR=false
+    volumes:
+      - /opt/appdata/media/navidrome:/data
+      - /data/media/music:/music:ro
+    ports:
+      - 192.168.0.231:4533:4533
+      - 100.105.219.6:4533:4533
     restart: unless-stopped
