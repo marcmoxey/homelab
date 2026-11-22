@@ -17,6 +17,7 @@ ZFS pool, and an encrypted off-site copy in Backblaze B2 (3-2-1).
 | Minecraft worlds | `backup.sh hourly/daily` → `/tank/backups/minecraft/<server>/` (24 hourly, 7 daily) | ✅ newest daily per server only (`/tank/backups/minecraft-latest/`, hardlinks) |
 | Immich photos + DB dumps | Photos live on the pool (RAIDZ1); Immich's own DB dumps in `/tank/photos/backups/` | ✅ |
 | Samba share | Lives on the pool | ✅ `/tank/files` |
+| Music (`/data/media/music`) | Lives on the pool | ✅ (added to restic paths: owned files, not re-downloadable) |
 | App settings (`/opt/appdata`) | *arr apps keep their own zips in `<app>/Backups/` | ✅ minus caches, logs, live Minecraft world |
 | Media library (`/data`) | Not backed up (re-downloadable; ~$70/month per 10 TB in B2) | ❌ by design |
 | Repo (compose, configs, docs) | GitHub | — |

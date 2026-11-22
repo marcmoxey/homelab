@@ -1,0 +1,8 @@
+- resources:
+    label: Media pool
+    disk: /data
+- datetime:
+    text_size: md
+    format:
+      dateStyle: medium
+      timeStyle: short

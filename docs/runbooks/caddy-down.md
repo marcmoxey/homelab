@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Alert** | `ServiceDown{service="jellyfin-public"}` (critical) or `ServiceDown{service="seerr-public"}` (warning); also `CertExpiringSoon` |
+| **Alert** | `ServiceDown{service="jellyfin-public"}` (critical) or `ServiceDown{service="seerr-public"}` (warning), `ServiceDown{service="navidrome-public"}` (warning); also `CertExpiringSoon` |
 | **Rule** | `probe_success == 0` for 2m — `monitoring/prometheus/rules/alerts.yml` |
-| **Fires when** | The Beelink can't load `https://watch.marcshometheater.org/health` or `https://request.marcshometheater.org/api/v1/status` through the public path (DNS → router → Caddy → app) |
-| **Impact** | Friends and family **outside** the house can't watch or request. Home users usually still work (Pi-hole sends them straight to the NAS), as does everything over Tailscale |
+| **Fires when** | The Beelink can't load `https://watch.marcshometheater.org/health` `https://request.marcshometheater.org/api/v1/status` or `https://music.marcshometheater.org/app/` through the public path (DNS → router → Caddy → app) |
+| **Impact** | Friends and family **outside** the house can't watch, request or play music. Home users usually still work (Pi-hole sends them straight to the NAS), as does everything over Tailscale |
 | **Notified via** | Alertmanager → ntfy-alertmanager → ntfy `homelab-alerts` → phone |
 | **Expected detection time** | ~3 min (15s scrape + 2m `for` + 30s `group_wait`) |
 | **Does NOT cover** | Jellyfin or Seerr themselves being down (the internal probes `jellyfin`/`seerr` fire too → [media-down.md](media-down.md)); slow streaming; one friend's app misconfigured |
@@ -21,17 +21,17 @@ friend → watch.marcshometheater.org
        → Cloudflare DNS (A record, grey cloud, kept current by the cloudflare-ddns container)
        → home public IP
        → router: 80/443 → 192.168.0.231
-       → Caddy (container `caddy`, nas/media) → jellyfin:8096 / seerr:5055
+       → Caddy (container `caddy`, nas/media) → jellyfin:8096 / seerr:5055 / navidrome:4533
 ```
 
 | Piece | Where | Details |
 |---|---|---|
 | Caddy | NAS, `nas/media/compose.yml` + `nas/media/caddy/Caddyfile` | Binds `192.168.0.231:80/443` |
 | Certificates | `/opt/appdata/media/caddy/data` | Let's Encrypt, auto-renewed by Caddy |
-| DNS | Cloudflare dashboard → `marcshometheater.org` → DNS | A records `watch`, `request` → home public IP, DNS only (grey) |
-| DDNS | NAS, `nas/ddns/compose.yml` (container `cloudflare-ddns`) | Updates both A records every 5 min; token in `nas/ddns/.env` + Vaultwarden |
+| DNS | Cloudflare dashboard → `marcshometheater.org` → DNS | A records `watch`, `request`, `music` → home public IP, DNS only (grey) |
+| DDNS | NAS, `nas/ddns/compose.yml` (container `cloudflare-ddns`) | Updates the A records (watch, request, music) every 5 min; token in `nas/ddns/.env` + Vaultwarden |
 | Port forwards | TP-Link router → NAT Forwarding → Virtual Servers | 80 TCP, 443 TCP+UDP → `192.168.0.231` |
-| Home shortcut | Pi-hole → Local DNS | Both names → `192.168.0.231` |
+| Home shortcut | Pi-hole → Local DNS | All three names → `192.168.0.231` |
 
 ---
 
@@ -50,7 +50,7 @@ On the NAS:
 
 ```bash
 cd /opt/stacks/nas/media
-docker compose ps caddy jellyfin seerr
+docker compose ps caddy jellyfin seerr navidrome
 docker compose logs --tail=50 caddy
 curl -sI --resolve watch.marcshometheater.org:443:192.168.0.231 https://watch.marcshometheater.org/health
 ```
@@ -76,7 +76,7 @@ sudo ss -tlnp | grep -E ':(80|443) '                          # Caddy listening?
 | DNS IP ≠ current public IP | DDNS container stopped, or its logs show an auth error (token rolled/expired/deleted) |
 | Public DNS NXDOMAIN for `watch` | A record deleted, container never ran, or domain expired (check auto-renew) |
 | DNS right, Caddy fine from inside, phone can't connect | Router port forward gone (router reboot/reset/firmware update), or the NAS's LAN IP changed |
-| `502` from Caddy | Jellyfin/Seerr down or renamed — Caddy reaches them by container name |
+| `502` from Caddy | Jellyfin/Seerr/Navidrome down or renamed — Caddy reaches them by container name |
 | Certificate expired / `CertExpiringSoon` | Renewals failing for weeks — see the Caddy logs for why (usually ports 80/443) |
 
 ## 3. Fix
@@ -91,7 +91,7 @@ sudo ss -tlnp | grep -E ':(80|443) '                          # Caddy listening?
 | NAS IP changed | Set a DHCP reservation for the NAS at `192.168.0.231` in the router, update the forwards |
 | DDNS container stopped | `cd /opt/stacks/nas/ddns && docker compose up -d` — it re-checks and fixes the records on start |
 | DDNS auth error | Token rolled/expired/deleted: Cloudflare → My Profile → API Tokens → Roll (DNS Edit, zone `marcshometheater.org` only), update `nas/ddns/.env` + Vaultwarden, `docker compose up -d` |
-| DNS record wrong/missing | Let the container recreate it (`docker compose restart` in `nas/ddns`); records must be **A, grey cloud** — no CNAMEs on `watch`/`request` |
+| DNS record wrong/missing | Let the container recreate it (`docker compose restart` in `nas/ddns`); records must be **A, grey cloud** — no CNAMEs on `watch`/`request`/`music` |
 | Domain expired | Cloudflare → Registrar → renew; keep auto-renew on |
 | Certificates stuck | Fix the port/DNS cause first, then `docker compose restart caddy` — Caddy retries automatically |
 
@@ -101,10 +101,10 @@ breaks their terms; forward any other port to "test"; delete `/opt/appdata/media
 
 ## 4. Verify (the incident isn't over until all are true)
 
-- [ ] Phone on cellular: both URLs load with a padlock; Jellyfin app plays a video
+- [ ] Phone on cellular: all three URLs load with a padlock; Jellyfin app plays a video, Amperfy plays a song
 - [ ] Phone on home Wi-Fi: same URLs still work (Pi-hole path)
 - [ ] `docker compose logs caddy` shows no new certificate errors
-- [ ] Prometheus → Alerts → `ServiceDown` for jellyfin-public / seerr-public **Inactive**
+- [ ] Prometheus → Alerts → `ServiceDown` for jellyfin-public / seerr-public / navidrome-public **Inactive**
 - [ ] **`[RESOLVED] ServiceDown` arrived on the phone**
 
 ## 5. Follow up

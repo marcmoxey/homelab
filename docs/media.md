@@ -26,6 +26,7 @@ mappings are needed anywhere**.
 | Sonarr | http://nas:8989 | `sonarr:8989` | `/opt/appdata/media/sonarr` | `/data` |
 | Jellyfin | http://nas:8096 | `jellyfin:8096` | `/opt/appdata/media/jellyfin` | `/data/media` (read-only) + `/dev/dri` |
 | Seerr | http://nas:5055 | `seerr:5055` | `/opt/appdata/media/seerr` | none |
+| Navidrome (music) | http://nas:4533 | `navidrome:4533` | `/opt/appdata/media/navidrome` | `/data/media/music` (read-only) |
 | Bazarr | http://nas:6767 | `bazarr:6767` | `/opt/appdata/media/bazarr` | `/data` |
 | Clonarr | http://nas:6060 | `clonarr:6060` | `/opt/appdata/media/clonarr` | none |
 | Jellystat | http://nas:3001 | `jellystat:3000` | `/opt/appdata/media/jellystat` | none |
@@ -44,12 +45,13 @@ The apps run as UID/GID 1000 (mmoxey); Seerr does so by default, the others via 
 viewing account streams, real client IP in Jellyfin's Activity log; Apple TV (Swiftfin) works with
 Quick Connect. Caddy drill: FIRING 5:38 PM → RESOLVED 5:43 PM.
 
-Exactly two services are reachable from the internet, both through Caddy over HTTPS:
+Exactly three services are reachable from the internet, all through Caddy (+ CrowdSec) over HTTPS:
 
 | URL | Goes to | Used for |
 |---|---|---|
 | https://watch.marcshometheater.org | `jellyfin:8096` | Jellyfin apps and browser (same address at home and away) |
 | https://request.marcshometheater.org | `seerr:5055` | Requesting movies and shows |
+| https://music.marcshometheater.org | `navidrome:4533` | Music (web player + Subsonic apps), added 2026-11-21 |
 
 Everything else (Vaultwarden, *arr apps, SABnzbd, BookStack, Immich, SSH, Samba) stays
 LAN + Tailscale only.
@@ -179,6 +181,44 @@ Seerr sign-in stops working at the same time. Delete their Vaultwarden item.
 
 **Forgotten password:** Jellyfin → Users → them → Password → set a new one; lockouts clear the same way.
 
+## Music (Navidrome)
+
+Music I own (CD rips, purchases, collections) lives in `/data/media/music`, one folder per artist.
+Navidrome plays it; there is no downloader for music (Lidarr was tried and removed).
+
+| Piece | Setting |
+|---|---|
+| Container | `deluan/navidrome:0.64.2`, runs as UID 1000, `/music` mounted **read-only** |
+| Public URL | `https://music.marcshometheater.org` (Caddy + CrowdSec, same DDNS + Pi-hole setup as watch/request) |
+| Adding music | Samba share **`\\192.168.0.231\music`** (= `/data/media/music`). Drop `Artist/Album/` folders at the top level |
+| Library | Watcher picks up new files within seconds; full scan every hour (`ND_SCANSCHEDULE=1h`) |
+| Tags | Navidrome builds artists/albums from **tags**, not folders. Official albums: MusicBrainz Picard. Unreleased/sessions: Mp3tag, Artist + Album Artist set, `ALBUM = %_directory%` |
+| Accounts | Admin (strong password, Vaultwarden) + one **non-admin** user per person. No "admin only at home" option exists, so admin is protected by password + Navidrome's login rate limit (5 / 20 s) + CrowdSec |
+| Apps | iPhone: Amperfy (Subsonic), Android: Symfonium, or the web player. Offline downloads supported |
+| Privacy | `ND_ENABLEINSIGHTSCOLLECTOR=false` |
+| Backup | `/data/media/music` is in the restic paths (it's not re-downloadable) |
+
+## Adding anime (avoiding wrong-season imports)
+
+Release groups and TheTVDB often number long anime differently (e.g. a group's "S02E08" is an old
+episode, while TheTVDB's Season 2 is a newer series). Checklist for every new anime:
+
+1. Add with **Series Type: Anime / Absolute**, root `/data/media/anime`, [Anime] profile, **Season Folder on**,
+   **no automatic search**. Requested via Seerr? TMDB often shows one long season, so open the show in
+   Sonarr afterwards and **monitor the other seasons**.
+2. Note Sonarr's seasons and the absolute number in brackets, e.g. `1 (171)`.
+3. Search **Prowlarr** (English + Japanese title) and compare names: absolute numbers (`- 171`) or
+   clear season names (`2nd Season S2E01`) are safe; plain `S02E01` that means a different season is not.
+4. If there's a mismatch: tag the series and add a **Release Profile → Must Not Contain** for that tag.
+   Current guards: `apothecary` → `/Kusuriya[ ._]no[ ._]Hitorigoto[ ._]S01[ ._]\(25-48\)/i`;
+   `blackclover` → `/Black[ ._]Clover[ ._](2017[ ._])?S0[2-4](E\d+)?\b/i`.
+5. Download **one season at a time** with Interactive Search (prefer full batches). Never "Search All
+   Missing" on long anime: dozens of queries per episode trip indexer rate limits (HTTP 429).
+6. Check episode 1's file name matches Sonarr's title before letting the rest run.
+
+Grabbed outside Sonarr (from Prowlarr)? **Wanted → Manual Import** → the download folder → set series,
+season, episodes → Move (Usenet) or Hardlink/Copy (torrents, so they keep seeding).
+
 ## Folders (ZFS pool, tank/data mounted at /data)
 
 | Path | What |
@@ -237,14 +277,22 @@ Verified 2026-11-21: Proton IP shown, kill switch blocked, port pushed (200).
   Without it: "External internet access denied" in the browser, 403 from other apps.
 - `host_whitelist = sabnzbd, nas` — without it: 403 when apps call it by name.
 - Folders: temporary `/data/usenet/incomplete`, completed `/data/usenet/complete`.
-- Categories: `tv` → `tv`, `movies` → `movies`.
+- Categories: `tv` → folder `tv`, `movies` → folder `movies`. **The folder column must be filled in**;
+  if it's empty, downloads land loose in `/data/usenet/complete/` and Sonarr asks for a manual import.
 
 **Radarr / Sonarr:** root folders above; Use Hardlinks instead of Copy = on; download client
 SABnzbd (`sabnzbd`, `8080`, API key, category, no username/password); Connect → Jellyfin
 (`jellyfin`, `8096`, Update Library on, Send Notifications off).
 
 **Prowlarr:** Apps → Radarr (`http://radarr:7878`) and Sonarr (`http://sonarr:8989`),
-Prowlarr server `http://prowlarr:9696`.
+Prowlarr server `http://prowlarr:9696`. Download clients (for grabbing from Prowlarr's own search):
+`SABnzbd` (category `movies`), `SABnzbd TV` (category `tv`), `qBittorrent` (host `gluetun`, port `8090`,
+category `tv`). Use **Grab with override** to pick the client and category.
+
+**Indexers:** NZB-Geek, altHUB (Usenet, priority 25); AnimeTosho (Usenet, `https://feed.animetosho.net`,
+API key `0`, priority 25, limits 60 queries / 20 grabs per hour, "Anime Standard Format Search" off in
+Sonarr); Nyaa.si (torrent, priority 50, Sonarr/Radarr compatibility options on). Delay profiles:
+default **Prefer Usenet**; tag `anime` → **Prefer Torrent** (anime groups often release on Nyaa first).
 
 **Jellyfin:** libraries Movies / Shows / Anime (paths above); Intel QuickSync (QSV) hardware
 transcoding; artwork saved in /config (media mount is read-only); separate API keys for
@@ -284,3 +332,8 @@ the VPN account: if leaked, delete it in Proton and make a new one). `.env.examp
 | Hardlink check | `ls -li` on the download and the library file: same inode number = hardlink |
 | New subtitle not in player | Bazarr → Jellyfin integration on; or refresh the item in Jellyfin |
 | Wrong poster/match | Jellyfin → item → Identify |
+| "Unable to parse" / "manual import required" | Sonarr → Activity → Queue → 👤 → set series/season/episode → Import. If it's every download: SABnzbd category has no folder (see SABnzbd settings) |
+| Anime episodes in the wrong season | See "Adding anime" above: Manual Import with the right season, then add a release-profile guard |
+| Sonarr says "Indexers unavailable due to failures" | Usually 429 rate limiting after big searches; wait 1 h, then Test the indexer in Sonarr to clear it |
+| Search spins for minutes | Backlog of searches: System → Tasks → Queue. `docker compose restart sonarr` clears it |
+| Music not showing in Navidrome | Files outside `/data/media/music`, or missing tags (`[Unknown Album]`); fix in Mp3tag, then Settings → Scan Library |

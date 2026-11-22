@@ -13,3 +13,4 @@ nas/ddns/.env
 *.tfstate
 *.tfstate.*
 crash.log
+nas/media/homepage/logs/

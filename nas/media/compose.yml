@@ -238,3 +238,26 @@ services:
       - 192.168.0.231:4533:4533
       - 100.105.219.6:4533:4533
     restart: unless-stopped
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v2.7.0
+    container_name: homepage
+    restart: unless-stopped
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: nas:3000,192.168.0.231:3000,100.105.219.6:3000
+      PUID: 1000
+      PGID: 1000
+      HOMEPAGE_VAR_JELLYFIN_KEY: ${HOMEPAGE_JELLYFIN_KEY}
+      HOMEPAGE_VAR_SEERR_KEY: ${HOMEPAGE_SEERR_KEY}
+      HOMEPAGE_VAR_SONARR_KEY: ${HOMEPAGE_SONARR_KEY}
+      HOMEPAGE_VAR_RADARR_KEY: ${HOMEPAGE_RADARR_KEY}
+      HOMEPAGE_VAR_PROWLARR_KEY: ${HOMEPAGE_PROWLARR_KEY}
+      HOMEPAGE_VAR_BAZARR_KEY: ${HOMEPAGE_BAZARR_KEY}
+      HOMEPAGE_VAR_SABNZBD_KEY: ${HOMEPAGE_SABNZBD_KEY}
+      HOMEPAGE_VAR_QBIT_KEY: ${HOMEPAGE_QBIT_KEY}
+    volumes:
+      - ./homepage:/app/config
+      - /data:/data:ro              # read-only, only for the free-space bar
+    ports:
+      - 192.168.0.231:3000:3000
+      - 100.105.219.6:3000:3000

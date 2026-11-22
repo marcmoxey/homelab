@@ -241,9 +241,11 @@ At home use `192.168.0.231` (NAS); away, turn on Tailscale and use `nas` or `100
 | Radarr | http://nas:7878 | `radarr:7878` | `nas/media` |
 | Jellyfin | https://watch.marcshometheater.org (anywhere) or http://nas:8096 | `jellyfin:8096` | `nas/media` |
 | Seerr | https://request.marcshometheater.org (anywhere) or http://nas:5055 | `seerr:5055` | `nas/media` |
+| Navidrome (music) | https://music.marcshometheater.org (anywhere) or http://nas:4533 | `navidrome:4533` | `nas/media` |
 | Bazarr / Clonarr / Jellystat | http://nas:6767 / :6060 / :3001 | — | `nas/media` |
 | Minecraft | Game address on port 25565 (public) | `prominence2:25565` | `nas/gameservers/minecraft` |
 | File share | `smb://nas/nasfileshare` | — | `/etc/samba/smb.conf` (copy in `nas/samba`) |
+| Music share | `\\192.168.0.231\music` (= `/data/media/music`) | — | `/etc/samba/smb.conf` |
 | Prometheus | http://100.66.160.124:9090 | `prometheus:9090` | `monitoring` (Beelink) |
 | Grafana | http://100.66.160.124:3000 | — | `monitoring` (Beelink) |
 | Alertmanager | http://100.66.160.124:9093 | — | `monitoring` (Beelink) |

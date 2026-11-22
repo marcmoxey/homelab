@@ -1,0 +1,17 @@
+title: Media
+theme: dark
+color: slate
+headerStyle: boxed
+statusStyle: dot
+hideVersion: true
+
+layout:
+  Watch:
+    style: row
+    columns: 3
+  Manage:
+    style: row
+    columns: 4
+  Downloads:
+    style: row
+    columns: 2

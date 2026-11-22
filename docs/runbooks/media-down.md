@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Alert** | `ServiceDown{service="<app>"}` — jellyfin, seerr, sonarr, radarr, prowlarr, sabnzbd, qbittorrent, bazarr, clonarr, jellystat |
+| **Alert** | `ServiceDown{service="<app>"}` — jellyfin, seerr, sonarr, radarr, prowlarr, sabnzbd, qbittorrent, bazarr, clonarr, jellystat, navidrome |
 | **Rule** | `probe_success == 0` for 2m — `monitoring/prometheus/rules/alerts.yml` |
 | **Fires when** | The Beelink can't load that app's health page on `100.105.219.6:<port>` for 2 minutes |
 | **Impact** | Depends on the app (table below). Nothing is lost while it's down: media is on the pool, settings on the NVMe |
@@ -23,6 +23,7 @@
 | bazarr | `bazarr` | `:6767` | No new subtitles |
 | clonarr | `clonarr` | `:6060` | No profile syncs (no immediate effect) |
 | jellystat | `jellystat` | `:3001` | Stats only |
+| navidrome | `navidrome` | `:4533/app/` | Music doesn't play (web + apps); library files are untouched (read-only mount) |
 
 All live in one stack: `/opt/stacks/nas/media` (details: [docs/media.md](../media.md)).
 
