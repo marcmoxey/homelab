@@ -2,16 +2,16 @@ services:
   prominence2:
     image: itzg/minecraft-server:2026.11.0-java17       
     container_name: prominence2
-    env_file: .env                              # CF_API_KEY
+    env_file: .env
+    mem_limit: 14g
     environment:
       EULA: "TRUE"
       TYPE: AUTO_CURSEFORGE
-      #CF_SLUG: "<modpack-slug>"                 # from the modpack's CurseForge URL
-      CF_PAGE_URL: "https://www.curseforge.com/minecraft/modpacks/prominence-2-hasturian-era/files/9563730"
+      CF_SLUG: "prominence-2-hasturian-era"                 # from the modpack's CurseForge URL
+      #CF_PAGE_URL: "https://www.curseforge.com/minecraft/modpacks/prominence-2-hasturian-era/files/9563730"
       MEMORY: "10G"
-      mem_limit: 14g
       ENABLE_WHITELIST: "TRUE"         # turn the whitelist on
-      ENFORCE_WHITELIST: "TRUE"        # kick anyone online who isn't on the list
+      ENFORCE_WHITELIST: "TRUE"        # kick anyone online who isn't on the list "https://www.curseforge.com/minecraft/modpacks/prominence-2-hasturian-era/files/9563730"
       ONLINE_MODE: "TRUE"
       TZ: "America/New_York"
     ports:
