@@ -41,10 +41,4 @@ music.marcshometheater.org {
 	}
 }
 
-read.marcshometheater.org {
-	import logging
-	route {
-		crowdsec
-		reverse_proxy kavita:5000
-	}
-}
+
