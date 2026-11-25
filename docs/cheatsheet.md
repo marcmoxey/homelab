@@ -201,6 +201,8 @@ Port-forwarded, and nothing else: **80/443 → Caddy** (`watch.` → Jellyfin, `
 
 ## Backups and cron
 
+> Schedules are managed by Ansible (`ansible/roles/nas/tasks/main.yml`). Don't edit them with `crontab -e`: change the role and run the playbook. Lines marked `#Ansible:` are Ansible's.
+
 Every backup pings healthchecks.io on success, so a missed run alerts. They land on the pool, then **restic copies everything irreplaceable to Backblaze B2 at 5:00** (details: `docs/backups.md`).
 
 | Backup | Run it now | Schedule | Goes to | Keeps |
@@ -213,7 +215,7 @@ Every backup pings healthchecks.io on success, so a missed run alerts. They land
 
 | Command | What it does |
 | --- | --- |
-| `crontab -l` / `crontab -e` | Your scheduled jobs: list / edit |
+| `crontab -l` / `crontab -e` | Your scheduled jobs: list / edit (change schedules in Ansible, not here) |
 | `sudo crontab -l` | Root's scheduled jobs (Vaultwarden backup, restic) |
 | `sudo bash -c 'source /root/.restic.env && restic snapshots'` | Off-site snapshots in B2 |
 | `sudo bash -c 'source /root/.restic.env && restic stats --mode raw-data'` | How much is stored in B2 |

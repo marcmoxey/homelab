@@ -19,7 +19,7 @@ The blackbox exporter on the Beelink loads Vaultwarden's built-in health page, `
 | Vaultwarden | NAS, `nas/vaultwarden/compose.yml` | Container `vaultwarden`, listens on `127.0.0.1:8080` only |
 | HTTPS | NAS, `tailscale serve` | `https://nas.tailf2e508.ts.net` → `http://127.0.0.1:8080`, tailnet only. No UFW rule (nothing listens on the LAN) |
 | Data | NAS NVMe, `/opt/appdata/vaultwarden` | `db.sqlite3` (the vault), `attachments/`, `sends/`, `rsa_key*` (signs logins), `config.json` |
-| Backups | NAS, `nas/vaultwarden/backup.sh` (to build), cron nightly | `/tank/backups/vaultwarden/<date>/` |
+| Backups | NAS, `nas/vaultwarden/backup.sh`, root cron 03:45 (Ansible) | `/tank/backups/vaultwarden/<date>/` |
 | Emergency sheet | Paper, offline | Master password, 2FA recovery code, Tailscale/GitHub logins |
 | Probe | Beelink, `prometheus.yml` job `blackbox-http` | Label `service: vaultwarden` |
 

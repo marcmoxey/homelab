@@ -32,7 +32,7 @@ not from those copies (a copy of a running database may be inconsistent).
 | Bucket + key | Terraform, `terraform/b2/` (bucket private, SSE-B2 encryption, hidden versions deleted after 1 day). The key only works on this bucket |
 | Connection settings | `/root/.restic.env` (repo URL, key ID, key), mode 600, **not in Git** |
 | Encryption password | `/root/.restic-password`, mode 600. Copies: Vaultwarden **and the paper emergency sheet** |
-| Script | `nas/restic/backup.sh`, root cron `0 5 * * *`, log `/var/log/restic-backup.log` |
+| Script | `nas/restic/backup.sh`, root cron `0 5 * * *` (Ansible), log `/var/log/restic-backup.log` |
 | Excludes | `nas/restic/excludes.txt` |
 | Retention | 7 daily, 4 weekly, 6 monthly (`forget --prune` every night) |
 | Integrity | Sundays: `restic check --read-data-subset=5%` (re-downloads and verifies 5% of the data) |

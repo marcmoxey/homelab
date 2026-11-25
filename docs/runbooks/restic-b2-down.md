@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Alert** | healthchecks.io check `restic-b2` is **DOWN** (no ping by 05:00 + 2 h grace) or got a **/fail** ping |
-| **Script** | `/opt/stacks/nas/restic/backup.sh` (root cron `0 5 * * *`), log `/var/log/restic-backup.log` |
+| **Script** | `/opt/stacks/nas/restic/backup.sh` (root cron `0 5 * * *`, Ansible), log `/var/log/restic-backup.log` |
 | **Impact** | No data is lost: the local backups and live data are fine. The off-site copy is older than it should be. Fix within a few days |
 | **Notified via** | healthchecks.io → email / Discord / ntfy.sh |
 | **Details** | [docs/backups.md](../backups.md) |
@@ -20,7 +20,7 @@ sudo bash -c 'source /root/.restic.env && restic snapshots --latest 3'
 
 | Log shows | Usually means |
 |---|---|
-| No entry for today | Cron didn't run: NAS was off, crontab changed, script not executable (`ls -l nas/restic/backup.sh`) |
+| No entry for today | Cron didn't run: NAS was off, crontab changed, script not executable (`ls -l nas/restic/backup.sh`). Missing job → rerun the Ansible playbook |
 | `FAILED: backup rc=1` + `Malformed Access Key Id` / `InvalidAccessKeyId` | B2 key wrong or deleted (`/root/.restic.env`) |
 | `transaction_cap_exceeded` / `storage_cap_exceeded` | B2 Caps & Alerts limit hit: check B2 → Caps & Alerts, raise if the growth is expected |
 | `too many requests` retried forever | B2 rate limiting: wait, or lower `s3.connections` to 1 |

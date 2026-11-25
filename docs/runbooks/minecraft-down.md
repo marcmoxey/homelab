@@ -20,7 +20,7 @@ prominence2 (NAS, :25565) ◄── mc-monitor (NAS) ◄── Prometheus (Beeli
 
 | Piece | Where | Details |
 |---|---|---|
-| Minecraft server | NAS, `/opt/stacks/nas/gameservers/minecraft/compose.yaml`, service `prominence2` | `itzg/minecraft-server:2026.11.0-java17`, Prominence II v4.1.8 (Fabric 1.20.1), `MEMORY: 10G` |
+| Minecraft server | NAS, `/opt/stacks/nas/gameservers/minecraft/compose.yaml`, service `prominence2` | `itzg/minecraft-server:2026.11.0-java17`, Prominence II, latest release via `CF_SLUG` (Fabric 1.20.1), `MEMORY: 10G` |
 | World data | NAS, `/opt/appdata/minecraft/prominence` | Mounted as `/data` in the container |
 | mc-monitor | Same compose file | `itzg/mc-monitor:1.21.0`, `EXPORT_SERVERS: "prominence2:25565"`, metrics on `100.105.219.6:9150` |
 | Scrape job | Beelink, `prometheus.yml` | `job_name: minecraft` |
@@ -94,7 +94,7 @@ docker stats --no-stream
 
 
 ## Backups & restore
-- Script: `nas/gameservers/minecraft/backup.sh` (cron lines are in its header)
+- Script: `nas/gameservers/minecraft/backup.sh` (scheduled by Ansible: `ansible/roles/nas/tasks/main.yml`)
 - Hourly: keep 24 → `/opt/backups/minecraft/prominence2/hourly/`
 - Daily 4:30 AM: keep 7 → `/opt/backups/minecraft/prominence2/daily/`
 - Log: `/home/mmoxey/mc-backup.log`

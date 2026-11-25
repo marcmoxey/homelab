@@ -22,7 +22,7 @@ The **blackbox exporter** on the Beelink acts like a visitor: every 15 s it load
 | Secrets | NAS, `nas/bookstack/.env` (git-ignored) | `APP_KEY`, `DB_PASSWORD`, `DB_ROOT_PASSWORD` — copies in the password manager |
 | Probe | Beelink, `monitoring/` compose | `blackbox` container, module `http_2xx` |
 | Scrape job | Beelink, `prometheus.yml` | `job_name: blackbox-http` |
-| Backups | NAS, `nas/bookstack/backup.sh`, cron 03:15 | `/tank/backups/bookstack/<date>/` → `db.sql.gz` + `config.tar.gz`, keep 7 |
+| Backups | NAS, `nas/bookstack/backup.sh`, cron 03:15 (Ansible) | `/tank/backups/bookstack/<date>/` → `db.sql.gz` + `config.tar.gz`, keep 7 |
 
 ---
 
