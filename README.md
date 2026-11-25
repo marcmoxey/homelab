@@ -8,8 +8,8 @@ A two-machine homelab run like a small production environment: everything is def
 
 | Machine | Role | Runs |
 |---|---|---|
-| **NAS** — Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | **Media:** Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, qBittorrent (VPN-only via gluetun), Bazarr, Clonarr, Jellystat, Caddy ([docs/media.md](docs/media.md)) · **Music:** Navidrome · **Apps:** Vaultwarden, Immich, BookStack, Homepage dashboard (LAN/Tailscale only) · **Games:** modded Minecraft + mc-monitor · **Infra:** Samba, Cloudflare DDNS, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
-| **Beelink SER Pro** — Ubuntu 26.04 | Watches everything | Prometheus, Grafana, Alertmanager, blackbox exporter, ntfy (push to phone), node_exporter, NUT client |
+| **NAS**  Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | **Media:** Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, qBittorrent (VPN-only via gluetun), Bazarr, Clonarr, Jellystat, Caddy ([docs/media.md](docs/media.md)) · **Music:** Navidrome · **Apps:** Vaultwarden, Immich, BookStack, Homepage dashboard (LAN/Tailscale only) · **Games:** modded Minecraft + mc-monitor · **Infra:** Samba, Cloudflare DDNS, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
+| **Beelink SER Pro**  Ubuntu 26.04 | Watches everything | Prometheus, Grafana, Alertmanager, blackbox exporter, ntfy (push to phone), node_exporter, NUT client |
 | **healthchecks.io** | Watches the watcher | Dead man's switch for the alerting chain, backup checks, DDNS heartbeat |
 | **UptimeRobot** | Watches from outside | Checks the public sites every 5 min from the internet, the path family actually uses (DNS → ISP → router → Caddy) |
 | **Backblaze B2** | Off-site copy | Encrypted restic backups, bucket and key managed with Terraform |
@@ -48,7 +48,7 @@ RAIDZ1 survives any one drive failing. lz4 compression and `atime=off` on everyt
 |---|---|---|
 | TargetDown | Prometheus can't scrape a target for 2 min | [target-down.md](docs/runbooks/target-down.md) |
 | Watchdog (dead man's switch) | healthchecks.io stops getting heartbeats | [watchdog-down.md](docs/runbooks/watchdog-down.md) |
-| ServiceDown | Any probed web app stops answering for 2 min — Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, qBittorrent, Immich, BookStack warning; Navidrome warning; public URLs `jellyfin-public` critical, `seerr-public` and `navidrome-public` warning | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
+| ServiceDown | Any probed web app stops answering for 2 min  Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, qBittorrent, Immich, BookStack warning; Navidrome warning; public URLs `jellyfin-public` critical, `seerr-public` and `navidrome-public` warning | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
 | CertExpiringSoon | A TLS certificate expires in under 14 days | [caddy-down.md](docs/runbooks/caddy-down.md) |
 | MinecraftDown | The Minecraft server stops answering for 2 min | [minecraft-down.md](docs/runbooks/minecraft-down.md) |
 | DriveHot | A drive is above 50 °C for 10 min | [drive-hot.md](docs/runbooks/drive-hot.md) |
@@ -57,7 +57,7 @@ RAIDZ1 survives any one drive failing. lz4 compression and `atime=off` on everyt
 | DiskSpaceLow / PoolSpaceLow / DiskWillFillIn24h | An ext4 disk < 15% free, the pool < 7 TiB free, or anything on track to fill within 24 h | [disk-space-low.md](docs/runbooks/disk-space-low.md) |
 | LowMemory | A host has < 10% RAM available for 10 min | [low-memory.md](docs/runbooks/low-memory.md) |
 
-One generic `ServiceDown` rule covers every probed service: the `service` and `severity` come from labels on the probe, and the runbook link is built from the service name — adding a service is one line of config, not a new rule. New runbooks start from [`_TEMPLATE.md`](docs/runbooks/_TEMPLATE.md).
+One generic `ServiceDown` rule covers every probed service: the `service` and `severity` come from labels on the probe, and the runbook link is built from the service name  adding a service is one line of config, not a new rule. New runbooks start from [`_TEMPLATE.md`](docs/runbooks/_TEMPLATE.md).
 
 ## Dashboards
 
@@ -115,7 +115,7 @@ The same repo is cloned to `/opt/stacks` on both machines; each one runs only it
 
 ## Reliability practices
 
-- **Infrastructure as code:** Docker Compose for every service, Ansible for the hosts — including the NAS's storage, shares, UPS config and backup schedules. A second Ansible run reports `changed=0`.
+- **Infrastructure as code:** Docker Compose for every service, Ansible for the hosts  including the NAS's storage, shares, UPS config and backup schedules. A second Ansible run reports `changed=0`.
 - **Rebuildable:** a dead OS disk is a reinstall plus one playbook run, documented in [docs/rebuild.md](docs/rebuild.md); secrets come from the password manager, never from Git.
 - **Pinned versions:** images are pinned; upgrades are a deliberate one-line change (the Minecraft modpack is the exception: it follows the latest CurseForge release via `CF_SLUG`).
 - **Validate before restart:** `docker compose config -q`, `promtool check config`, `amtool check-config` and `ansible-playbook --check --diff` before any change goes live.
@@ -124,10 +124,10 @@ The same repo is cloned to `/opt/stacks` on both machines; each one runs only it
 - **Black-box monitoring:** a blackbox exporter loads each app the way a user would, so "container up, app broken" still alerts.
 - **Drills:** alerts are tested by breaking things on purpose. A drill isn't finished until the *Resolved* notification arrives.
 - **Planned maintenance under a silence:** Alertmanager silences scoped to the host being worked on, expired when it's back.
-- **Backups with restore tests (3-2-1):** Minecraft hourly + nightly, BookStack and Vaultwarden nightly, Immich database dumps — each restore-tested into a throwaway container — then **everything irreplaceable copied off-site nightly** (restic → B2, encrypted, 7 daily / 4 weekly / 6 monthly, weekly integrity check). Schedules are managed by Ansible; missed or failed backups alert via healthchecks.io.
+- **Backups with restore tests (3-2-1):** Minecraft hourly + nightly, BookStack and Vaultwarden nightly, Immich database dumps  each restore-tested into a throwaway container  then **everything irreplaceable copied off-site nightly** (restic → B2, encrypted, 7 daily / 4 weekly / 6 monthly, weekly integrity check). Schedules are managed by Ansible; missed or failed backups alert via healthchecks.io.
 - **Inside and outside monitoring:** Prometheus probes from the Beelink, plus UptimeRobot checking the public URLs from the internet, so a broken router forward or ISP problem still alerts.
 - **Intrusion prevention:** CrowdSec reads Caddy and Jellyfin logs and bans scanners and brute-force IPs at the proxy; home and Tailscale ranges are whitelisted.
-- **Burn-in before trust:** drives got SMART short tests, a 48-hour destructive `badblocks` pass and SMART long tests; RAM got 4 passes of MemTest86 — all with zero errors before any data was stored.
+- **Burn-in before trust:** drives got SMART short tests, a 48-hour destructive `badblocks` pass and SMART long tests; RAM got 4 passes of MemTest86  all with zero errors before any data was stored.
 - **Power protection:** a CyberPower UPS shared via NUT so both machines can shut down cleanly.
 - **Secrets stay out of Git:** `.env` files, tokens and ping URLs are git-ignored; `*.example` files show the format.
 
