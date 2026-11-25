@@ -1,6 +1,6 @@
 # homelab
 
-A two-machine homelab run like a small production environment: everything is defined in Git, every alert has a runbook, and every outage — real or drilled — gets a blameless postmortem.
+A two-machine homelab run like a small production environment: everything is defined in Git, every alert has a runbook, and every outage real or drilled gets a blameless postmortem.
 
 ![Homelab diagram](docs/homelab-diagram.png)
 
@@ -16,7 +16,7 @@ A two-machine homelab run like a small production environment: everything is def
 
 The two machines talk over **Tailscale**. Internal services are bound to the LAN and Tailscale addresses only (Docker-published ports bypass UFW, so nothing internal listens on `0.0.0.0`).
 
-**Exposed to the internet — and nothing else:**
+**Exposed to the internet and nothing else:**
 
 | Port | Goes to | Why |
 |---|---|---|
