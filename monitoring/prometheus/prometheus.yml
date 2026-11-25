@@ -90,6 +90,7 @@ scrape_configs:
         labels: { service: navidrome, severity: warning }
       - targets: ['https://music.marcshometheater.org/app/']
         labels: { service: navidrome-public, severity: warning }
+      - targets: ['http://192.168.0.231:5000']
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
