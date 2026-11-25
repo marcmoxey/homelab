@@ -1,0 +1,17 @@
+---
+- name: Update initramfs
+  ansible.builtin.command: update-initramfs -u
+  changed_when: true
+
+- name: Reload Samba
+  ansible.builtin.systemd_service:
+    name: smbd
+    state: reloaded
+
+- name: Restart NUT
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - nut-server
+    - nut-monitor

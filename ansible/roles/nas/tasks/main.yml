@@ -1,0 +1,121 @@
+---
+# Role: nas — everything specific to the NAS's job (storage, shares, UPS, scheduled jobs).
+# Secrets (smbpasswd users, NUT passwords, .env files, restic env/password) are NOT managed here:
+# they are restored from Vaultwarden, as listed in the DR runbook.
+
+# ---------- ZFS ----------
+- name: Install ZFS tools
+  ansible.builtin.apt:
+    name: zfsutils-linux
+    state: present
+
+- name: Cap the ZFS ARC at 16 GiB
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/zfs.conf
+    content: "options zfs zfs_arc_max=17179869184\n"
+    mode: "0644"
+  notify: Update initramfs
+
+- name: Check whether the tank pool is imported
+  ansible.builtin.command: zpool list -H -o name tank
+  register: tank_status
+  changed_when: false
+  failed_when: false
+  check_mode: false        # read-only, so it is safe to run even during --check dry runs
+
+# Import only. Ansible must never CREATE a pool: that would wipe the disks.
+- name: Import the existing tank pool (fresh OS install)
+  ansible.builtin.command: zpool import tank
+  when: tank_status.rc != 0
+  changed_when: true
+
+# ---------- NVMe app data ----------
+- name: Mount the NVMe at /opt/appdata
+  ansible.posix.mount:
+    path: /opt/appdata
+    src: LABEL=appdata
+    fstype: ext4
+    opts: defaults,noatime
+    dump: "0"
+    passno: "2"
+    state: mounted
+
+# ---------- Samba ----------
+- name: Install Samba
+  ansible.builtin.apt:
+    name: samba
+    state: present
+
+- name: Deploy smb.conf from the repo (checked by testparm before it replaces the live file)
+  ansible.builtin.copy:
+    src: /opt/stacks/nas/samba/smb.conf
+    remote_src: true
+    dest: /etc/samba/smb.conf
+    mode: "0644"
+    validate: testparm -s %s
+  notify: Reload Samba
+
+# ---------- NUT (UPS) ----------
+- name: Install NUT
+  ansible.builtin.apt:
+    name: nut
+    state: present
+
+- name: Deploy NUT config without secrets
+  ansible.builtin.copy:
+    src: "/opt/stacks/nas/nut/{{ item }}"
+    remote_src: true
+    dest: "/etc/nut/{{ item }}"
+    owner: root
+    group: nut
+    mode: "0640"
+  loop:
+    - nut.conf
+    - ups.conf
+    - upsd.conf
+  notify: Restart NUT
+# upsd.users and upsmon.conf contain passwords: restore those from Vaultwarden (DR runbook).
+
+# ---------- Scheduled jobs (root) ----------
+# Each job gets a "#Ansible: <name>" marker, so re-running never duplicates it.
+- name: Vaultwarden nightly backup
+  ansible.builtin.cron:
+    name: vaultwarden-backup
+    user: root
+    minute: "45"
+    hour: "3"
+    job: "/opt/stacks/nas/vaultwarden/backup.sh >> /var/log/vaultwarden-backup.log 2>&1"
+
+- name: restic off-site backup to B2
+  ansible.builtin.cron:
+    name: restic-b2
+    user: root
+    minute: "0"
+    hour: "5"
+    job: "/opt/stacks/nas/restic/backup.sh"
+
+# ---------- Scheduled jobs (admin user) ----------
+- name: BookStack nightly backup
+  ansible.builtin.cron:
+    name: bookstack-backup
+    user: "{{ admin_user }}"
+    minute: "15"
+    hour: "3"
+    job: "/opt/stacks/nas/bookstack/backup.sh >> /home/{{ admin_user }}/bookstack-backup.log 2>&1"
+
+- name: Minecraft hourly backup
+  ansible.builtin.cron:
+    name: minecraft-backup-hourly
+    user: "{{ admin_user }}"
+    minute: "0"
+    job: "/opt/stacks/nas/gameservers/minecraft/backup.sh hourly >> /home/{{ admin_user }}/mc-backup.log 2>&1"
+
+- name: Minecraft daily backup
+  ansible.builtin.cron:
+    name: minecraft-backup-daily
+    user: "{{ admin_user }}"
+    minute: "0"
+    hour: "4"
+    job: "/opt/stacks/nas/gameservers/minecraft/backup.sh daily >> /home/{{ admin_user }}/mc-backup.log 2>&1"
+
+# Vaultwarden runs as ROOT only (above). It must not also be in the admin user's crontab.

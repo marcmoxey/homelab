@@ -6,3 +6,10 @@
     - base
     - docker
     - tailscale
+
+# NAS only: storage, shares, UPS and the scheduled backup jobs.
+- name: NAS-specific setup
+  hosts: nas
+  become: true
+  roles:
+    - nas
