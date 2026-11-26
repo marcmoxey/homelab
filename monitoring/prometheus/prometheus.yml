@@ -74,6 +74,10 @@ scrape_configs:
         labels:
           service: seerr-public
           severity: warning
+      - targets: ['https://invite.marcshometheater.org']
+        labels:
+          service: wizarr-public
+          severity: warning
       - targets: ["http://100.105.219.6:8096/health"]
         labels: { service: jellyfin, severity: critical }
       - targets: ["http://100.105.219.6:5055/api/v1/status"]
