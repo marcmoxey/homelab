@@ -42,3 +42,11 @@ music.marcshometheater.org {
 }
 
 
+invite.marcshometheater.org {
+        import logging
+        route {
+                crowdsec
+                reverse_proxy wizarr:5690
+        }
+}
+

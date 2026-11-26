@@ -90,6 +90,21 @@ services:
       - "100.105.219.6:5055:5055"
     restart: unless-stopped
 
+  wizarr:
+    image: ghcr.io/wizarrrr/wizarr:v2026.10.1
+    container_name: wizarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    ports:
+      - 192.168.0.231:5690:5690
+      - 100.105.219.6:5690:5690
+    volumes:
+      - /opt/appdata/wizarr/database:/data/database
+      - /opt/appdata/wizarr/wizard_steps:/data/wizard_steps
+    restart: unless-stopped
+
   bazarr:
     image: lscr.io/linuxserver/bazarr:v1.6.2-ls373
     container_name: bazarr
