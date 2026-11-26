@@ -337,3 +337,33 @@ the VPN account: if leaked, delete it in Proton and make a new one). `.env.examp
 | Sonarr says "Indexers unavailable due to failures" | Usually 429 rate limiting after big searches; wait 1 h, then Test the indexer in Sonarr to clear it |
 | Search spins for minutes | Backlog of searches: System → Tasks → Queue. `docker compose restart sonarr` clears it |
 | Music not showing in Navidrome | Files outside `/data/media/music`, or missing tags (`[Unknown Album]`); fix in Mp3tag, then Settings → Scan Library |
+
+## Friend sign-ups (Wizarr)
+
+Friends get a one-time invite link (`https://invite.<your-domain>`) instead of me creating accounts by hand.
+
+| | |
+|---|---|
+| Container | `wizarr` in `nas/media/compose.yml`, data in `/opt/appdata/wizarr` |
+| Public route | Caddy `invite.<your-domain>` → CrowdSec → `wizarr:5690` |
+| Jellyfin link | Internal `http://jellyfin:8096`, API key named "Wizarr"; external URL `https://watch.<your-domain>` |
+| New users | Hidden from Jellyfin login screens; only the libraries chosen per invite |
+| Seerr | Informational connection only. Friends sign into Seerr with their Jellyfin login; Seerr creates the account on first sign-in ("Enable Jellyfin Sign-In" for new users is on) |
+| Runbook | [wizarr-public-down.md](runbooks/wizarr-public-down.md) |
+
+## Jellyfin plugins
+
+Plugins live in `/opt/appdata/jellyfin` (backed up by restic). After a rebuild, re-add the repositories and reinstall these.
+Most UI plugins only change the **web interface** (browser, desktop, phone apps); native TV apps (Android TV, Roku, Swiftfin) don't show them.
+
+| Plugin | Repository | What it does |
+|---|---|---|
+| TheTVDB | Jellyfin Stable | Season numbering matches Sonarr (fixes anime seasons) |
+| Intro Skipper | `https://intro-skipper.org/manifest.json` | Skip intro/credits (works on most apps via media segments) |
+| File Transformation | (dependency) | Lets the web plugins below load safely |
+| Playback Reporting | Jellyfin Stable | Watch history (overlaps with Jellystat) |
+| Jellyfin Enhanced | `https://raw.githubusercontent.com/n00bcodr/jellyfin-plugins/main/manifest.json` | Seerr requests inside Jellyfin, shortcuts, subtitle styling. Seerr URL: `http://seerr:5055` |
+| InPlayerEpisodePreview | `https://raw.githubusercontent.com/Namo2/InPlayerEpisodePreview/master/manifest.json` | Episode list inside the player |
+| Jellyfin Featured | `https://raw.githubusercontent.com/spkesDE/jellyfin-featured-plugin/main/manifest.json` | Home-page featured carousel |
+
+Rules: only plugins with builds for the running Jellyfin version (12.x); back up the database first; one at a time, restart, check **Active**; uninstall anything that shows **NotSupported**.

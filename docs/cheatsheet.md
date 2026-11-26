@@ -267,3 +267,14 @@ unset B2_APPLICATION_KEY B2_APPLICATION_KEY_ID
 ```
 
 `terraform.tfstate` contains the restic key: never commit it (copy attached in Vaultwarden).
+
+## Adding a new public site (order matters)
+
+1. Service running and reachable from Caddy: `docker exec caddy wget -qO- http://<container>:<port> | head -3`
+2. Add the name to `DOMAINS` in `nas/ddns/compose.yml`, `docker compose up -d` there; Cloudflare record = public IP, grey cloud
+3. Check public DNS: `dig +short <name> @1.1.1.1` → same IP as `watch.`
+4. **Only then** add the Caddy block, `caddy validate`, `caddy reload`, look for "certificate obtained successfully"
+5. Probe (`service: <name>-public`), runbook `<name>-public-down.md`, UptimeRobot, README
+
+If anything looked the name up before step 3, it cached "doesn't exist" (negative caching):
+`docker compose restart caddy` (NAS) and `sudo systemctl restart pihole-FTL` (Pi), then `sudo resolvectl flush-caches`.

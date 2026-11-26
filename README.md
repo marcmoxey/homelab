@@ -8,7 +8,7 @@ A two-machine homelab run like a small production environment: everything is def
 
 | Machine | Role | Runs |
 |---|---|---|
-| **NAS**  Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | **Media:** Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, qBittorrent (VPN-only via gluetun), Bazarr, Clonarr, Jellystat, Caddy ([docs/media.md](docs/media.md)) · **Music:** Navidrome · **Apps:** Vaultwarden, Immich, BookStack, Homepage dashboard (LAN/Tailscale only) · **Games:** modded Minecraft + mc-monitor · **Infra:** Samba, Cloudflare DDNS, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
+| **NAS**  Jonsbo N5, i5-14600K, 64 GB RAM, ZFS RAIDZ1 on 4× 18 TB (47 TiB usable), 2.5 GbE, Ubuntu 26.04 | Does the work | **Media:** Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, SABnzbd, qBittorrent (VPN-only via gluetun), Bazarr, Clonarr, Jellystat, Caddy ([docs/media.md](docs/media.md)) · **Music:** Navidrome · **Apps:** Vaultwarden, Immich, BookStack, Homepage dashboard (LAN/Tailscale only), Wizarr (friend invites) · **Games:** modded Minecraft + mc-monitor · **Infra:** Samba, Cloudflare DDNS, cAdvisor, node_exporter, smartctl-exporter, NUT server (UPS over USB) |
 | **Beelink SER Pro**  Ubuntu 26.04 | Watches everything | Prometheus, Grafana, Alertmanager, blackbox exporter, ntfy (push to phone), node_exporter, NUT client |
 | **healthchecks.io** | Watches the watcher | Dead man's switch for the alerting chain, backup checks, DDNS heartbeat |
 | **UptimeRobot** | Watches from outside | Checks the public sites every 5 min from the internet, the path family actually uses (DNS → ISP → router → Caddy) |
@@ -20,7 +20,7 @@ The two machines talk over **Tailscale**. Internal services are bound to the LAN
 
 | Port | Goes to | Why |
 |---|---|---|
-| 443 / 80 | Caddy → Jellyfin (`watch.<your-domain>`), Seerr (`request.<your-domain>`) and Navidrome (`music.<your-domain>`) | Family on smart TVs; automatic HTTPS, admin login blocked from outside, per-user lockouts, **CrowdSec** bans scanners and brute-force IPs before they reach the apps |
+| 443 / 80 | Caddy → Jellyfin (`watch.<your-domain>`), Seerr (`request.<your-domain>`) , Navidrome (`music.<your-domain>`) and Wizarr (`invite.<your-domain>`) | Family on smart TVs; automatic HTTPS, admin login blocked from outside, per-user lockouts, **CrowdSec** bans scanners and brute-force IPs before they reach the apps |
 | 25565 | Minecraft | Whitelisted game server |
 
 Vaultwarden is reachable only through `tailscale serve` (HTTPS, tailnet only); everything else is LAN + Tailscale.
@@ -48,7 +48,7 @@ RAIDZ1 survives any one drive failing. lz4 compression and `atime=off` on everyt
 |---|---|---|
 | TargetDown | Prometheus can't scrape a target for 2 min | [target-down.md](docs/runbooks/target-down.md) |
 | Watchdog (dead man's switch) | healthchecks.io stops getting heartbeats | [watchdog-down.md](docs/runbooks/watchdog-down.md) |
-| ServiceDown | Any probed web app stops answering for 2 min  Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, qBittorrent, Immich, BookStack warning; Navidrome warning; public URLs `jellyfin-public` critical, `seerr-public` and `navidrome-public` warning | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
+| ServiceDown | Any probed web app stops answering for 2 min  Jellyfin and Vaultwarden critical; Seerr, *arr apps, SABnzbd, qBittorrent, Immich, BookStack warning; Navidrome warning; public URLs `jellyfin-public` critical, `seerr-public`, `navidrome-public` and `wizarr-public` warning | `docs/runbooks/<service>-down.md` (e.g. [media-down.md](docs/runbooks/media-down.md), [vaultwarden-down.md](docs/runbooks/vaultwarden-down.md), [caddy-down.md](docs/runbooks/caddy-down.md)) |
 | CertExpiringSoon | A TLS certificate expires in under 14 days | [caddy-down.md](docs/runbooks/caddy-down.md) |
 | MinecraftDown | The Minecraft server stops answering for 2 min | [minecraft-down.md](docs/runbooks/minecraft-down.md) |
 | DriveHot | A drive is above 50 °C for 10 min | [drive-hot.md](docs/runbooks/drive-hot.md) |
@@ -92,7 +92,7 @@ If the NAS's OS disk dies, the rebuild is: install Ubuntu → clone this repo �
       grafana/dashboards/ Dashboard JSON
     nas/
       media/          Jellyfin, Seerr, *arr apps, SABnzbd, qBittorrent + gluetun (VPN), Bazarr, Clonarr, Jellystat,
-                      Navidrome (music), Homepage (dashboard), Caddy (custom build with CrowdSec bouncer + Caddyfile),
+                      Navidrome (music), Homepage (dashboard), Wizarr (invites), Caddy (custom build with CrowdSec bouncer + Caddyfile),
                       CrowdSec (acquis + whitelist)
       restic/         Nightly off-site backup script + excludes
       ddns/           Cloudflare DDNS (scoped API token, locked-down container)
